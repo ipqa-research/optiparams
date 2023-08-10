@@ -1,127 +1,114 @@
-c     Optimizador de Series de sistemas binarios. 
-c     Adaptado en septiembre 2017 en base al optimizador de series de 2014, que a su vez part�a del c�digo "OptimCMRKP2011" para sistemas.
-c     Enfocado y aplicado inicialmente para 
-c       - Series de (C1/C2/C3/CO2) + Alcanos, con RKPR
-c       - QMR con Kij(T), ajustando Kij0 y Lij como rectas dependientes de del1 del pesado. Ej.K0 serie C1: par = (del1 -0.85)/c 
-c
-c     Historial previo del optimizador por sistemas:
-c     26/02/2011 Nueva funci�n objetivo y agregado de posibles KP extra (ver common EXTRAKP)
-c
-c	versi�n del 20/03/2010 combinando las �ltimas mejoras previas con una actualizaci�n de la Funci�n Objetivo, 
-c	para dar mas peso a las fases livianas: t�rminos 11 a 15 (parte LLV)
-c											t�rminos FV(jf+1) y FV(jf+3) en el DO NTP
-c	Al 30/09/2010: agregando Type I
-c	Al  3/11/2010: agregados Type II & IV
-c
-      program OptimQMRseries 
-      implicit double precision (A-H,O-Z)
-      logical updateC1,kwithac,Lexp
-      CHARACTER*30 INFILE,OUTFILE
-      COMMON/UNITS/NUNIT,NOUT,Nsys,updateC1,kwithac,Lexp,nL20
-c      COMMON/EXTRAK/ IntCri, PcInt, XcInt, TcInt, islope, T9art
-      COMMON/UNITAUX/NOUT2
-       nout2=8
-       nunit=1
-       nout=9
-      
-      WRITE (6,*) 'ENTER INFILE'
-      READ (5,'(A)') INFILE
-C      INFILE='CMRCO2C13.DAT'
-C      OUTFILE='AUXAUX.DAT'
-      OPEN(NUNIT,FILE=INFILE)
-C
-      WRITE (6,*) 'ENTER A NAME FOR THE OUTFILE'
-      READ (5,'(A)') OUTFILE
-      OPEN(NOUT,FILE=OUTFILE)
-      OPEN(NOUT2,FILE='AUXOUT.DAT')
-c
-      WRITE (6,*) 'KEY POINTS REQUIRED AT INPUT FILE FOR 
-     & EACH TYPE OF PHASE BEHAVIOR'
-      WRITE (6,*) ' 1: I   (Pc(T1), Xc(T1), Pc(T2), Xc(T2))'
-      WRITE (6,*) ' 2: II  (Pc(T1), Xc(T1), Pc(T2), Xc(T2), Tucep)'
-      WRITE (6,*) ' 3: III (T994, Tm, PCPm, P393, Tucep)'
-      WRITE (6,*) ' 4: IV  (Pc(T), Xc(T), TUCEP, TLCEP, Tk)'
-      WRITE (6,*) ' 5: V   (Pc(T1), Xc(T1), Pc(T2), Xc(T2), TLCEP, Tk)'
+!     Optimizador de Series de sistemas binarios.
+!     Adaptado en septiembre 2017 en base al optimizador de series de 2014,
+!     que a su vez partía del código "OptimCMRKP2011" para sistemas.
+!     Enfocado y aplicado inicialmente para
+!       - Series de (C1/C2/C3/CO2) + Alcanos, con RKPR
+!       - QMR con Kij(T), ajustando Kij0 y Lij como rectas dependientes de del1
+!         del pesado. Ej.K0 serie C1: par = (del1 -0.85)/c
+!
+!     Historial previo del optimizador por sistemas:
+!     26/02/2011 Nueva función objetivo y agregado de posibles
+!     KP extra (ver common EXTRAKP)
+!
+!          versión del 20/03/2010 combinando las últimas mejoras previas con una
+!        actualización de la Función Objetivo, para dar mas peso a las
+!        fases livianas:
+!             - términos 11 a 15 (parte LLV)
+!             - términos FV(jf+1)
+!             - FV(jf+3) en el DO NTP
+!          Al 30/09/2010: agregando Type I
+!          Al  3/11/2010: agregados Type II & IV
+!
+program OptimQMRseries
+   implicit double precision(A - H, O - Z)
+   logical updateC1, kwithac, Lexp
+   CHARACTER*30 INFILE, OUTFILE
+   COMMON/UNITS/NUNIT, NOUT, Nsys, updateC1, kwithac, Lexp, nL20
+   ! COMMON/EXTRAK/ IntCri, PcInt, XcInt, TcInt, islope, T9art
+   COMMON/UNITAUX/NOUT2
+   nout2 = 8
+   nunit = 1
+   nout = 9
 
-C	islope=0      En principio, no se utilizar� T994 para Types 2 or 4
-C	IF (NCASE==2.or.NCASE==4) THEN
-C          WRITE (6,*) ' Use of extrapolated T994?'
-C          WRITE (6,*) ' 1 for YES'
-C	    READ (5,*)islope
-C	END IF
-	read(NUNIT,*)N	! number of parameters to optimize
-      updateC1=.false.
-      if(N==5.or.N==7)then
-       WRITE (6,*) 'ENTER 1 FOR UPDATING Component 1 parameters together 
-     & with the  rest'
-      WRITE (6,*) 'OTHERWISE (if Component 1 will remain fixed) ENTER 0'
-       READ (5,*) nupd
-       if (nupd==1) updateC1=.true.
-      end if
-      
-c      kwithac=.false.
-c      Lexp=.false.
-c	read(NUNIT,*)ik,iL	! if 1, k0 depends on ac(2)
-c      if (ik==1) kwithac=.true.
-c      if (iL==1) Lexp=.true.
-	
-	call OptimQMR (N)
-      WRITE (6,*) ' Optimization performed succesfully. Press enter.'
-	READ (5,*)file
-C
-	close (unit=nunit)
-      close (unit=nout)
-      close (unit=nout2)
-      END
-c
-      SUBROUTINE OptimQMR (N)
-      PARAMETER (nco=2, maxs=32)
-      implicit double precision (A-H,O-Z)
-C
-	DOUBLE PRECISION Kij(nco,nco),Kinf,Kinf1,Kinf2,K01,K02
-	dimension ac(nco),b(nco),del1(nco),rk(nco)
-      DIMENSION X(N), XGUESS(N), XGUES4(4)
-      logical updateC1, curve,kwithac,Lexp
-	COMMON/CASEvec/ Ica(maxs), NK(maxs), NC(maxs)
-	COMMON/fixed/ nchange 
-c      COMMON/EXTRAK/ IntCri, PcInt, XcInt, TcInt, islope, T9art
-      COMMON/UNITS/NUNIT,NOUT,Nsys,updateC1,kwithac,Lexp,nL20,iexp
-	COMMON /MODEL/ NMODEL
-	COMMON /Kcubic/Kinf1,Kinf2,K01,K02,Tstar1,Tstar2,C1,C2
-	COMMON/DAT/DAT(maxs,32)
-	COMMON/KeyTV/Tc1(maxs),Tc2(maxs)
-	COMMON/KeyTa/Ta,Taint
-	COMMON/Key2Ph/NTP(maxs),T2p(maxs,8),P2p(maxs,8)
-	COMMON/KeyIsop/NzP(maxs),NzT(maxs),IZv(maxs,15), 
-     &	               PTsat(maxs,15),Xis(maxs,15),Yis(maxs,15)
-	COMMON/KeyFUG/NFUG(maxs),Tfug(maxs,8),Pfug(maxs,8),
-     &              X1fug(maxs,8),Y1fug(maxs,8)
-	COMMON/PmaxLL/Phigh
-	COMMON /rule/ncomb
-      COMMON /CRIT/TC(nco),PC(nco),DC(nco)
-      COMMON /CRITV/TCV(maxs),PCV(maxs),OM(maxs),DCV(maxs)
-	COMMON /COMPONENTS/ ac,b,del1,rk,Kij,NTDEP
-	COMMON /COMPONENTSV/ acV(maxs),bV(maxs),del1V(maxs),rkV(maxs)
-	COMMON /sDDLC/q(nco),nqopt
- 	COMMON /Tdep/ Kinf,Tstar
-	COMMON /Fifth/ i5p,N1,refN,bk,Ad,ck
-	DATA FSCALE/1.0E0/
-	EXTERNAL F    ! ObjFun
-	XSCALE=1.0E0
-	read(NUNIT,*)NMODEL
-	read(NUNIT,*)Nsys
-	IF(NMODEL.LE.2)THEN
-C	SRK or PR
-		CALL read2Pcubic(nunit,nout)
-	ELSE IF (NMODEL.EQ.3) THEN
-		CALL readcomp(nunit,nout)
- 	ELSE IF (NMODEL.EQ.4) THEN
-C		CALL readPCSAFT(nunit,nout)
- 	ELSE IF (NMODEL.EQ.6) THEN
-C		CALL readSPHCT(nunit,nout)
-	END IF
-	read(NUNIT,*)Phigh
-	read(NUNIT,*)OM(Nsys+1)   ! Methane acentric factor
+   write (6, *) 'ENTER INFILE'
+   READ (5, '(A)') INFILE
+   ! INFILE='CMRCO2C13.DAT'
+   ! OUTFILE='AUXAUX.DAT'
+   OPEN (NUNIT, FILE=INFILE)
+
+   write (6, *) 'ENTER A NAME FOR THE OUTFILE'
+   READ (5, '(A)') OUTFILE
+   OPEN (NOUT, FILE=OUTFILE)
+   OPEN (NOUT2, FILE='AUXOUT.DAT')
+
+   write (6, *) 'KEY POINTS REQUIRED AT INPUT FILE FOR EACH TYPE OF PHASE BEHAVIOR'
+   write (6, *) ' 1: I   (Pc(T1), Xc(T1), Pc(T2), Xc(T2))'
+   write (6, *) ' 2: II  (Pc(T1), Xc(T1), Pc(T2), Xc(T2), Tucep)'
+   write (6, *) ' 3: III (T994, Tm, PCPm, P393, Tucep)'
+   write (6, *) ' 4: IV  (Pc(T), Xc(T), TUCEP, TLCEP, Tk)'
+   write (6, *) ' 5: V   (Pc(T1), Xc(T1), Pc(T2), Xc(T2), TLCEP, Tk)'
+
+   ! islope=0      En principio, no se utilizará T994 para Types 2 or 4
+   ! if (NCASE==2.or.NCASE==4) then
+   !     write (6,*) ' Use of extrapolated T994?'
+   !     write (6,*) ' 1 for YES'
+   !     READ (5,*)islope
+   ! end if
+   read (NUNIT, *) N        ! number of parameters to optimize
+   updateC1 = .false.
+   if (N == 5 .or. N == 7) then
+      write (6, *) 'ENTER 1 FOR UPDATING Component 1 parameters together with the rest'
+      write (6, *) 'OTHERWISE (if Component 1 will remain fixed) ENTER 0'
+      READ (5, *) nupd
+      if (nupd == 1) updateC1 = .true.
+   end if
+
+   ! kwithac=.false.
+   ! Lexp=.false.
+   ! read(NUNIT,*)ik,iL  ! if 1, k0 depends on ac(2)
+   ! if (ik==1) kwithac=.true.
+   ! if (iL==1) Lexp=.true.
+
+   call OptimQMR(N)
+   write (6, *) ' Optimization performed succesfully. Press enter.'
+   READ (5, *) file
+
+   close (unit=nunit)
+   close (unit=nout)
+   close (unit=nout2)
+end
+!
+SUBROUTINE OptimQMR(N)
+   PARAMETER(nco=2, maxs=32)
+   implicit double precision(A - H, O - Z)
+
+   DOUBLE PRECISION Kij(nco, nco), Kinf, Kinf1, Kinf2, K01, K02
+
+   dimension ac(nco), b(nco), del1(nco), rk(nco)
+   DIMENSION X(N), XGUESS(N), XGUES4(4)
+   logical updateC1, curve, kwithac, Lexp
+   COMMON/CASEvec/Ica(maxs), NK(maxs), NC(maxs)
+   COMMON/fixed/nchange
+   ! COMMON/EXTRAK/ IntCri, PcInt, XcInt, TcInt, islope, T9art
+   COMMON/UNITS/NUNIT, NOUT, Nsys, updateC1, kwithac, Lexp, nL20, iexp
+   COMMON/MODEL/NMODEL
+   COMMON/Kcubic/Kinf1, Kinf2, K01, K02, Tstar1, Tstar2, C1, C2
+   COMMON/DAT/DAT(maxs, 32)
+   COMMON/KeyTV/Tc1(maxs), Tc2(maxs)
+   COMMON/KeyTa/Ta, Taint
+   COMMON/Key2Ph/NTP(maxs), T2p(maxs, 8), P2p(maxs, 8)
+   COMMON/KeyIsop/NzP(maxs), NzT(maxs), IZv(maxs, 15), PTsat(maxs, 15), Xis(maxs, 15), Yis(maxs, 15)
+   COMMON/KeyFUG/NFUG(maxs), Tfug(maxs, 8), Pfug(maxs, 8), X1fug(maxs, 8), Y1fug(maxs, 8)
+   COMMON/PmaxLL/Phigh
+   COMMON/rule/ncomb
+   COMMON/CRIT/TC(nco), PC(nco), DC(nco)
+   COMMON/CRITV/TCV(maxs), PCV(maxs), OM(maxs), DCV(maxs)
+   COMMON/COMPONENTS/ac, b, del1, rk, Kij, NTDEP
+   COMMON/COMPONENTSV/acV(maxs), bV(maxs), del1V(maxs), rkV(maxs)
+   COMMON/sDDLC/q(nco), nqopt
+   COMMON/Tdep/Kinf, Tstar
+   COMMON/Fifth/i5p, N1, refN, bk, Ad, ck
+   DATA FSCALE /1.0E0/
 
       curve=.false.
       WRITE (6,*) 'Enter carbon number of compound 1 defining the serie'
