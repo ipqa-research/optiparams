@@ -117,46 +117,13 @@ SUBROUTINE OptimQMR(N)
          real(8) :: F
       end function
    end interface
-      end if
-	if(curve.and.updateC1)then
-	     if(iexp==1)del1(1) = Ad+Bd*exp(-1/refN)
-	     if(iexp==2)del1(1) = Ad+Bd*(1.0-exp(-1/refN))
-	     call paramsfromdelta1(del1(1),Tc(1),Pc(1),OM(Nsys+1),
-     &                               ac(1),b(1),rk(1),Dc(1))
-              write(nout,*)1
-	        write(nout,1)Tc(1),Pc(1),OM(Nsys+1),1/Dc(1), 2.0 
-		      write(nout,2)ac(1),b(1),del1(1),rk(1)
-	end if
-	DO i = 1, Nsys
-          read(NUNIT,*)NC(i), Ica(i), NK(i), NTP(i), NzP(i), NzT(i), NFUG(i)
-          NCASE = Ica(i)
-	    READ(nunit,*)Tcv(i),Pcv(i),OM(i),Vceos
-	    dcv(i)=1/Vceos
-          SELECT CASE (nmodel)
-            CASE (1,2)
-	        READ(nunit,*)acv(i),bv(i),rkv(i) ! SRK/PR
-            CASE (3)
-	        READ(nunit,*)acv(i),bv(i),del1v(i),rkv(i)  ! RKPR
-          END SELECT
-        if(curve)then
-	        if(iexp==1)del1v(i) = Ad+Bd*NC(i)*exp(-NC(i)/refN)
-c	        if(NC(i)>20)del1v(i)=del1v(i)+0.7*(1-exp(-(NC(i)-20)/10.0))  ! 2017
-	        if(iexp==2)del1v(i) = Ad+Bd*(1.0-exp(-NC(i)/refN))
-	        call paramsfromdelta1(del1v(i),Tcv(i),Pcv(i),OM(i),
-     &                                      acv(i),bv(i),rkv(i),Dcv(i))
-              write(nout,*)NC(i)
-	        write(nout,1)Tcv(i),Pcv(i),OM(i),1/Dcv(i), 2.0 
-		      write(nout,2)acv(i),bv(i),del1v(i),rkv(i)
- 1	        FORMAT(F10.4,F10.4,F10.6,F9.5,F5.1)
- 2	        FORMAT(F10.4,F10.6,F10.6,F10.5)
-        end if
-!     Now the data...
-! Case  0   NK=0
-! Case  I  (NK=5 or 7 mean 2 or 4): Pc(T1), Xc(T1), [Pc(T2), Xc(T2)]
-! Case  II (NK=5 or 7 mean 3 or 5): Pc(T1), Xc(T1), Tu, [Pc(T2), Xc(T2)]            (Xlo,Ylo go optionally in NTP)
-! Case  III(NK=4 or 5):             T994, Tm, Pm, P393, [Tu]                        (Xlo,Ylo go optionally in NTP)
-! Case  IV (NK=5 or 7):             Pc(T) , Xc(T) , Tu , TL, Tk, [Pc(T2), Xc(T2)]   (Xlo,Ylo go optionally in NTP)
-! Case  V  (NK=5 or 7 mean 4 or 6): Pc(T1), Xc(T1), TL, Tk, [Pc(T2), Xc(T2)]        (Xlo,Ylo go optionally in NTP)
+
+   character(len=*), parameter :: fmt_1 = "(F10.4, F10.4, F10.6, F9.5, F5.1)"
+   character(len=*), parameter :: fmt_2 = "(F10.4, F10.6, F10.6, F10.5)"
+   character(len=*), parameter :: fmt_3 = "(i4, 3F10.5)"
+   character(len=*), parameter :: fmt_99995 = "('  The solution is ', 6X, 5F9.5, //, '  The function ', 'value is ', F9.6)"
+   character(len=*), parameter :: fmt_99992 = "('  The solution is ', 6X, 2F9.5, //, '  The function ', 'value is ', F9.6)"
+
 
 		    do k=1,NK(i)	 ! NK can be [0, 4, 5, 7]
 			    read(NUNIT,*)DAT(i,k)
