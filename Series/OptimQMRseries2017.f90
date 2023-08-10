@@ -110,31 +110,13 @@ SUBROUTINE OptimQMR(N)
    COMMON/Fifth/i5p, N1, refN, bk, Ad, ck
    DATA FSCALE /1.0E0/
 
-      curve=.false.
-      WRITE (6,*) 'Enter carbon number of compound 1 defining the serie'
-      WRITE (6,*) '1 for Methane, 2 for Ethane, etc.'
-      READ (5,*) N1
-	if(N >= 3)then
-        WRITE (6,*) 'ENTER 1 FOR OBTAINING Pure Component Parameters  
-     &     from exponential curve constants for del1'
-         WRITE (6,*) 'OTHERWISE (if params will remain as read) ENTER 0'
-          READ (5,*) ncu
-          if (ncu==1) curve=.true.
-          if(curve)then
-            READ(nunit,*)Ad,Bd,refN
-              WRITE (6,*) 'ENTER 1 FOR Ad+Bd*NC(i)*exp(-NC(i)/refN)'
-              WRITE (6,*) 'ENTER 2 for Ad+Bd* (1.0-exp(-NC(i)/refN))'
-            READ (5,*) iexp
-                WRITE (6,*) 'ENTER 1 for fixing bk '
-                WRITE (6,*) '   or 2 for fixing refN '
-                WRITE (6,*) '   or 3 for fixing Ad '
-                WRITE (6,*) '   or 4 for fixing ck '
-                WRITE (6,*) 'while optimizing the others'
-            READ (5,*) i5p
-            if (i5p==1)WRITE (6,*) 'ENTER fixed value for bk '
-            if (i5p/=1)WRITE (6,*) 'ENTER initial value for bk '
-            READ(5,*)bk
-          end if
+   interface
+      function F(X, N)   ! SUBROUTINE ObjFun (N, X, F)
+         real(8) :: X(n)
+         integer :: n
+         real(8) :: F
+      end function
+   end interface
       end if
 	if(curve.and.updateC1)then
 	     if(iexp==1)del1(1) = Ad+Bd*exp(-1/refN)
