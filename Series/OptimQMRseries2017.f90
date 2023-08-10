@@ -1298,839 +1298,114 @@ subroutine AzeotNewton(MS, VS, ME, VE)
 9  FORMAT(F9.4, E12.4, 2F9.5, F9.4, E12.4, I4, I2)
 11 end
 
-c	subroutine bceval(nder,z,T,P,Vcri,b,c,bT,cT,bP,cP)
-	subroutine bceval(z,T,V,P,b,c)
-c	INPUT:  z,T,V
-c	OUTPUT: P,b,c
-c
-C	The following subroutine must be included in a separate .for file:
-C   XTVTERMO(NTYP,T,V,P,z,FUG,FUGT,FUGV,FUGN)
-C   INPUT:
-C     NTYP:   LEVEL OF DERIVATIVES, SEE BELOW
-C     T:      TEMPERATURE (K)
-C     V:      MOLAR VOLUME (L/MOL)
-C     z:      COMPOSITION (MOLES, NEED NOT BE NORMALIZED)
-C   OUTPUT:
-C     P:      PRESSURE (bar)
-C     FUG:    VECTOR OF LOG FUGACITIES (ALL NTYP)
-C     FUGT:   T-DERIVATIVE OF FUG (NTYP = 2, 4 OR 5)
-C     FUGV:   V-DERIVATIVE OF FUG (ALL NTYP)
-C     FUGN:   MATRIX OF COMPOSITION DERIVATIVES OF FUG (NTYP >=3)
-      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      PARAMETER (nco=2)
-      DIMENSION z(nco)
-      DIMENSION sqz(nco),ym(nco),u(nco),up(nco),y(nco)
-	COMMON /Pder/ DPDN(nco),DPDT,DPDV
-	COMMON /CAEPcond/ DPDVcri
-	eps=1.0D-4
- 1	sqz(1)=sqrt(z(1))
-	sqz(2)=sqrt(z(2))
-	call eigcalc(z,T,V,P,b,u)
-	dpdvcri=dpdv
-c	calculation of b at s=eps  (e)
-	y(1)=z(1)+eps*u(1)*sqz(1)
-	y(2)=z(2)+eps*u(2)*sqz(2)
-	if(minval(y).lt.0)then
-		call modifyz(z)
-		go to 1
-	end if
-	call eigcalc(y,T,V,Pp,bpos,up)
-c	calculation of b at s=-eps  (m)
-	ym(1)=z(1)-eps*u(1)*sqz(1)
-	ym(2)=z(2)-eps*u(2)*sqz(2)
-	if(minval(ym).lt.0)then
-		call modifyz(z)
-		goto 1
-	end if
-	call eigcalc(ym,T,V,Pn,bneg,up)
-c	calculation of c
-	c=(bpos-bneg)/2.0/eps
-	end
-c
-	subroutine modifyz(z)
-      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      DIMENSION z(2)
-	if(z(1).lt.z(2))then
-		z(1)=2*z(1)
-		z(2)=1.0d0-z(1)
-	else
-		z(2)=2*z(2)
-		z(1)=1.0d0-z(2)
-	end if
-	end
-c
-	subroutine eigcalc(z,T,V,P,b,u)
-      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      PARAMETER (nco=2)
-      DIMENSION z(nco),FUG(nco),FUGT(nco),FUGV(nco),FUGN(nco,nco)
-      DIMENSION u(nco)
-      jac=5 ! FUGN is required, but not FLT
-      call XTVTERMO(jac,T,V,P,z,FUG,FUGT,FUGV,FUGN)
-	bet=-z(1)*FUGN(1,1)-z(2)*FUGN(2,2)
-	gam=z(1)*z(2)*(FUGN(1,1)*FUGN(2,2)-FUGN(1,2)**2)
-	sq=sqrt(bet**2-4*gam)
-	rlam1=(-bet+sq)/2
-	rlam2=(-bet-sq)/2
-	if(abs(rlam1).lt.abs(rlam2))then
-		b=rlam1
-	else
-		b=rlam2
-	end if
-	u2=(b-z(1)*FUGN(1,1))/(sqrt(z(1)*z(2))*FUGN(1,2)) ! k=u2/u1=u2
-	u(1)=sqrt(1/(1+u2*u2))  !normalization
-	u(2)=sqrt(1-u(1)**2)
-	if(u2.lt.0) u(2)=-u(2)
-	end
-C
-C     purpose of routine CRITSTABCHECK:
-C
-C     To find the composition where the tangent plane distance respect to the 
-C     critical composition takes on its minimum value at given T and P
-C
-C     Parameters:
-C
-C     T       (I)       Temperature
-C     P       (I)       Pressure
-C     Xc	    (I)       Composition of the critical point
-C     W       (O)       Composition of the minimum tpd
-C     tpdm    (O)       Value of the minimum tpd
-C
-      SUBROUTINE CRITSTABCHECK (nout,T,P,Xc,W,tpdm,Vw)
-      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      PARAMETER (MAXC=2)
-      DIMENSION Z(MAXC), FUG(MAXC),FT(MAXC),FP(MAXC),
-     *      FX(MAXC,MAXC)
-      DIMENSION fc(MAXC),FTAB(0:200),VTAB(0:200)
-	LOGICAL	PRINTPD
-c	The output of TERMO PHILOG is actually the vector ln(phi(i)*P)
-	PRINTPD=.false.														! for printing curve
-C							Activate/comment also additional calling to CRITSTABCHECK after CEPK
-c									and reduction of delXS (between flags 2 and 4)
-      Z(1) = Xc
-      Z(2) = 1.D0-Z(1)
-	CALL TERMO(0,1,IC,T,P,Z,V,FUG,FT,FP,FX)
-      fc(1)=log(Z(1))+FUG(1)		! fc(i) is ln(Xc(i)*phi(i)*P)
-      fc(2)=log(Z(2))+FUG(2)
-C
-C     CALCULATE TABLE OF VALUES OF tpd
-C
-      STEP = 0.02D0							
-	NP=50
-	IF (P.lt.2.0.AND.PRINTPD) THEN
-		STEP = 0.005D0							
-		NP=200
-	END IF
-      DO K = 0,NP
-         Z(1) = max(1.0d-15,DBLE(K)/NP)
-         Z(2) = max(1.0d-15,1.D0-Z(1))
-		if(K.eq.NP)Z(1)=1.0d0-Z(2)
-		CALL TERMO(0,1,IC,T,P,Z,V,FUG,FT,FP,FX)
-         VTAB(K)=V
-         FTAB(K)=Z(1)*(log(Z(1))+FUG(1)-fc(1))
-         FTAB(K)=FTAB(K)+Z(2)*(log(Z(2))+FUG(2)-fc(2))
-			if(P.lt.2.0.AND.PRINTPD)write(nout,1)K*step,FTAB(K)		! printing curve
-	ENDDO
-  1	format (F6.3,2x,E11.4)
-C
-C     CALCULATE MAXVAL
-C
-      INUM = MINLOC(FTAB(0:NP),DIM=1)-1
-	if (INUM.EQ.0.or.INUM.EQ.NP) then
-		if (INUM.EQ.0) then
-			W = STEP/2
-			Zlim=0.D0
-		else if (INUM.EQ.NP) then
-			W = 1.0d0-STEP/2
-			Zlim=1.D0
-		end if
-		DO
-			Z(1) = W
-			Z(2) = 1.0d0-Z(1)
-			CALL TERMO(0,1,IC,T,P,Z,Vw,FUG,FT,FP,FX)
-		   tpdm=Z(1)*(log(Z(1))+FUG(1)-fc(1))
-		   if(z(2)>0.0d0) tpdm=tpdm+Z(2)*(log(Z(2))+FUG(2)-fc(2))
-			W = (Z(1)+Zlim)/2
-			if(tpdm.le.FTAB(INUM))go to 99
-		END DO
-	else
-		DERV1 = (FTAB(INUM+1)-FTAB(INUM-1))/(2.D0*STEP)
-		DERV2 = (FTAB(INUM+1)-2.D0*FTAB(INUM)+FTAB(INUM-1))/STEP**2
-C
-C     INTERPOLATE TO OPTIMUM
-C
-		DELX = -DERV1/DERV2
-	end if
-      W = DBLE(INUM)/NP + DELX
-      tpdm = FTAB(INUM) + DELX*(DERV1+.5D0*DELX*DERV2)
-	Vw = VTAB(INUM)
- 99   END
-C
-	SUBROUTINE CEPK (T,Zc2,Vc,Y2,Vy,P,ITER)
-      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      PARAMETER (nco=2,TOL=1.0D-7,TOLX=1.0D-6)
-	DOUBLE PRECISION JAC(5,5),AJ(5,5)
-      DIMENSION F(5),DEL(5),DPcDN(nco),rel(5),db(5),ipiv(5)
-      DIMENSION X(nco),FUGc(nco),FUGTc(nco),FUGVc(nco),FUGNc(nco,nco)
-      DIMENSION Yn(nco),FUG(nco),FUGT(nco), FUGV(nco), FUGN(nco,nco)
-	COMMON /Pder/ DPDN(nco),DPDT,DPDV
-C	Variables are [T,lnZc2,Vc,lnY2,lnVy]
-	N=5	! DLSARG CONSTANTS (now dgesv in MKL)
-	LDA=5
-	ldb=5
-c	IPATH=1
-	epsV=1.0D-6*Vc
-	depsV=2*epsV
-	epsT=1.0D-6*T
-	depsT=2*epsT
-	ITER=0
-	JAC(1:2,4:5)=0.0D0	! Always zero
-	X(1)=1.0D0-Zc2
-	X(2)=Zc2
-	Yn(2)=Y2
-	Yn(1)=1.0D0-Y2
-	DEL=1
-c	Newton procedure for solving the CEP equations
-	DO WHILE (MAXVAL(ABS(DEL)).GT.TOLX)  
-		eps=min(1.0D-6,x(2)/20)
-		deps=2*eps
-		call XTVTERMO(4,T,Vc,Pc,X,FUGc,FUGTc,FUGVc,FUGNc)
-		DPcDN=DPDN
-		DPcDT=DPDT
-		DPcDV=DPDV
-21		call XTVTERMO(4,T,Vy,Py,Yn,FUG,FUGT,FUGV,FUGN)
-		DPyDV=DPDV
-		if(Pc.GT.0.0.AND.(Py.lt.0.95*Pc.or.Py.gt.1.05*Pc))then
-			if(DPyDV.lt.0)then  ! very important for convergence and accuracy of P at low T
-				Vy=max(0.9*Vy,Vy+(Pc-Py)/DPyDV)
-			else	! mechanical instability region
-				Vy=0.9*Vy
-			end if
-			go to 21
-		end if
-  		call bceval(X,T,Vc,Pc,b,c)
-		F(1)=b
-		F(2)=C
-		F(3)=Pc-Py
-		F(4)=FUGc(1)-FUG(1)
-		F(5)=FUGc(2)-FUG(2)
-		ITER=ITER+1
-		IF(MAXVAL(ABS(DEL)).LE.5*TOLX.AND.MAXVAL(ABS(F)).LE.TOL)GOTO 3
-		X(1)=X(1)+eps
-		X(2)=1.0D0-X(1)
-		call bceval(X,T,Vc,P,bpos,cpos)
-		X(1)=X(1)-deps
-		X(2)=1.0D0-X(1)
-		call bceval(X,T,Vc,P,bneg,cneg)
-		X(1)=X(1)+eps
-		X(2)=1.0D0-X(1)
-		JAC(1,2)=-X(2)*(bpos-bneg)/(deps)  !(db/dlnX2)
-		JAC(2,2)=-X(2)*(cpos-cneg)/(deps)  !(dc/dlnX2)
-		T=T+epsT
-		call bceval(X,T,Vc,P,bpos,cpos)
-		T=T-depsT
-		call bceval(X,T,Vc,P,bneg,cneg)
-		T=T+epsT
-		JAC(1,1)=(bpos-bneg)/(depsT)		!bT
-		JAC(2,1)=(cpos-cneg)/(depsT)		!cT
-		Vc=Vc+epsV
-		call bceval(X,T,Vc,P,bpos,cpos)
-		Vc=Vc-depsV
-		call bceval(X,T,Vc,P,bneg,cneg)
-		Vc=Vc+epsV
-		JAC(1,3)=(bpos-bneg)/(depsV)		!bV
-		JAC(2,3)=(cpos-cneg)/(depsV)		!cV
-C
-		JAC(3,1)= DPcDT-DPDT
-		JAC(3,2)= X(2)*(DPcDN(2)-DPcDN(1))
-		JAC(3,3)= DPcDV
-		JAC(3,4)= -Yn(2)*(DPDN(2)-DPDN(1))
-		JAC(3,5)= -DPyDV*Vy
-C
-		JAC(4,1)= FUGTc(1)-FUGT(1)
-		JAC(4,2)= X(2)*(FUGNc(1,2)-FUGNc(1,1))
-		JAC(4,3)= FUGVc(1)
-		JAC(4,4)= -Yn(2)*(FUGN(1,2)-FUGN(1,1))
-		JAC(4,5)= -FUGV(1)*Vy
-C
-		JAC(5,1)= FUGTc(2)-FUGT(2)
-		JAC(5,2)= X(2)*(FUGNc(2,2)-FUGNc(2,1))
-		JAC(5,3)= FUGVc(2)
-		JAC(5,4)= -Yn(2)*(FUGN(2,2)-FUGN(2,1))
-		JAC(5,5)= -FUGV(2)*Vy
-C
-C		CALL DLSARG (N, JAC, LDA, -F, IPATH, del)
-c       call dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
-        db = -F
-        AJ=JAC
-        call dgesv( N, 1, AJ, lda, ipiv, db, ldb, info )
-        if (info.ne.0) write(6,*)"error with dgesv in parameter ",info
-        del = db
-c        
-		rel(1)=del(1)/T
-		rel(2)=del(2)/log(X(2))
-		rel(3)=del(3)/Vc
-		rel(4)=del(4)/log(Yn(2))
-		rel(5)=del(5)/log(Vy)
-		relmax=maxval(abs(rel))
-		if(relmax.ge.0.2)delx=delx*0.1/relmax
-		call Bcalc(Yn,T,Bmix)
- 27		Vy0=exp(log(Vy)+DEL(5))
-		if (Vy0.lt.1.01*Bmix)then
-			DEL=DEL/2
-			go to 27
-		end if
-		call Bcalc(X,T,Bmix)
- 28		if (Vc+DEL(3).lt.1.01*Bmix)then
-			DEL=DEL/2
-			go to 28
-		end if
- 22		Zc2=exp(log(X(2))+DEL(2))
-		Y2=exp(log(Yn(2))+DEL(4))
-		if (min(Zc2,Y2).lt.0.or.max(Zc2,Y2).gt.1)then
-			DEL=DEL/2
-			go to 22
-		end if
-		X(2)=Zc2
-		X(1)=1.0D0-Zc2
-		T=T+DEL(1)
-		Vc=Vc+DEL(3)
-		Yn(2)=Y2
-		Yn(1)=1.0D0-Yn(2)
-		Vy=exp(log(Vy)+DEL(5))
-	END DO
- 3	Zc2=X(2)
-	Y2=Yn(2)
-	P=(Pc+Py)/2
-	END
-c
-	subroutine PTpointBin(P,T,X1,Y2) ! Adapted from TxyZone (specifying T)
-c
-c	X1: guess for the molar fraction of comp. 1 in the first phase
-c	Y2: guess for the molar fraction of comp. 2 in the second phase
-c	
-      implicit double precision (A-H,O-Z)
-      PARAMETER (nco=2,RGAS=0.08314472d0,eps=1.0d-7)
-C
-c	The independent variables are lnX,lnY2,lnVx,lnVy,lnT
-c	we use X<Y
-c	The equations are 2 equipressure, 2 equifugacity and specification.
-      DIMENSION X(2),Y(2),IPH(2),b(5),ipiv(5)
-      DIMENSION XVAR(5),F(5),dFdS(5),dXdS(5),delX(5),RJAC(5,5),AJ(5,5)
-      DIMENSION FUGx(2),FUGy(2),FUGTx(2),FUGTy(2),FUGVx(2),FUGVy(2)
-      DIMENSION DFGNx(2,2),DFGNy(2,2),DFG1NTP(2)
-      DIMENSION DPDNx(2),DPDNy(2),OLD(5)
- 	dimension Arn(nco),ArVn(nco),ArTn(nco)
-	COMMON/UNIT/NOUT
-	COMMON/Pder/ DPDN(2),DPDT,DPDV
-	TOLF=1.0D-5	! for residuals
-	TOL= 1.0D-6	! for variables
-	N=5	! DLSARG CONSTANTS (now dgesv in MKL)
-	LDA=5
-	ldb=5
-c	IPATH=1
-	DFDS=0.0D0
-	DFDS(5)=-1.0D0
-	NS=5  ! lnT to be specified
-	IPH=[1,-1]
-	if(P==177.0) IPH=[0,0]
-	XVAR(5)=log(T)
-	XVAR(1)=log(X1)
-	XVAR(2)=log(Y2)
-	X=[X1,1.0D0-X1]
-	Y=[1.0D0-Y2,Y2]
-	CALL VCALC(IPH(1),2,X,T,P,V)
-	Vx=V
-	XVAR(3)=log(V)
-	CALL VCALC(IPH(2),2,Y,T,P,V)
-	Vy=V
-	XVAR(4)=log(V)
- 14	NITER=0
-	FMAXOLD=8.0D0
-	FMAX=7.0D0
-	DMAXOLD=8.0D0
-	DMAX=7.0D0
-	RJAC(5,1:5)=0.0D0
-	F(5)=0.0D0		! log(T)-S (specification: T)
-	RJAC(5,5)=1.0D0
-c	Newton procedure for solving the present point
-	DO WHILE (DMAX.GT.TOL.or.FMAX.GT.TOLF)
-		IF ((FMAX.GT.FMAXOLD.and.DMAX.GT.DMAXOLD).or.niter.GE.10) THEN
-			WRITE(NOUT,*) 'NITER PT= ', NITER
-			if(niter.GE.25)exit
-		END IF
-	    NITER=NITER+1
- 21		CALL XTVTERMO(4,T,Vx,Px,X,FUGx,FUGTx,FUGVx,DFGNx)
-c		INDIC=4 (T derivatives are required)
-	    DPDNx=DPDN
-	    DPDVx=DPDV
-	    DPDTx=DPDT
-		CALL XTVTERMO(4,T,Vy,Py,Y,FUGy,FUGTy,FUGVy,DFGNy)
-	    DPDNy=DPDN
-	    DPDVy=DPDV
-	    DPDTy=DPDT
-		IBACK=0
-		if(Px.lt.0.8*P.OR.(Px.gt.1.2*P.and.Px-P.gt.1.d-10))then
-			Vxold=Vx
-			call Bcalc(X,T,Bmix)
-			if(DPDVx.lt.0)then
-				Vx=max(0.9*Vx,Vx+(P-Px)/DPDVx,1.005*Bmix)
-C				if(Vx.eq.Vxold)go to 11  ! return
-			else	! mechanical instability region
-				Vx=max(0.9*Vx,1.005*Bmix)
-			end if
-			XVAR(3)=log(Vx)
-			IBACK=1
-		end if
-		if(Py.lt.0.8*P.OR.(Py.gt.1.2*P.and.Py-P.gt.1.d-10))then
-			Vyold=Vy
-			call Bcalc(Y,T,Bmix)
-			if(DPDVy.lt.0)then
-				Vy=max(0.9*Vy,Vy+(P-Py)/DPDVy,1.005*Bmix)
-C				if(Vy.eq.Vyold)go to 11  ! return
-			else	! mechanical instability region
-				Vy=max(0.9*Vy,1.005*Bmix)
-			end if
-			XVAR(4)=log(Vy)
-			IBACK=1
-		end if
-		if(IBACK.EQ.1) go to 21
-		if((Vy.gt.Vx.and.(Px.lt.P/2.OR.Px.gt.2*P)).or.
-	1		(Vx.gt.Vy.and.(Py.lt.P/2.OR.Py.gt.2*P)))then
-			Vxold=Vx
-			if(DPDVx.lt.0)then  ! very important for convergence and accuracy of P at low T
-				Vx=max(0.9*Vx,Vx+(P-Px)/DPDVx)
-C				if(Vx.eq.Vxold)go to 11  ! return
-			else	! mechanical instability region
-				Vx=0.9*Vx
-			end if
-			XVAR(3)=log(Vx)
-			Vyold=Vy
-			if(DPDVy.lt.0)then  ! very important for convergence and accuracy of P at low T
-				Vy=max(0.9*Vy,Vy+(P-Py)/DPDVy)
-			else	! mechanical instability region
-				Vy=0.9*Vy
-			end if
-			XVAR(4)=log(Vy)
-			go to 21
-		end if
-		F(1)=log(Px/P)
-		F(2)=log(Py/P)
-		F(3)=FUGx(1)-FUGy(1)
-		F(4)=FUGx(2)-FUGy(2)
-C
-		RJAC(1,1)=x(1)*(DPDNx(1)-DPDNx(2))/Px
-		RJAC(2,2)=-Y(2)*(DPDNy(1)-DPDNy(2))/Py
-		RJAC(1,3)=Vx*DPDVx/Px	! (1,2)=(2,1)=(1,4)=(2,3)=0
-		RJAC(2,4)=Vy*DPDVy/Py
-		RJAC(1,5)=T*DPDTx/Px
-		RJAC(2,5)=T*DPDTy/Py
-C
-		RJAC(3:4,1)=x(1)*(DFGNx(1:2,1)-DFGNx(1:2,2))
-		RJAC(3:4,2)=Y(2)*(DFGNy(1:2,1)-DFGNy(1:2,2))
-		RJAC(3:4,3)=Vx*FUGVx(1:2)
-		RJAC(3:4,4)=-Vy*FUGVy(1:2)
-		RJAC(3:4,5)=T*(FUGTx(1:2)-FUGTy(1:2))
-C
-C		CALL DLSARG (N, RJAC, LDA, -F, IPATH, delX)
-c       call dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
-        b = -F
-        AJ=RJAC
-        call dgesv( N, 1, AJ, lda, ipiv, b, ldb, info )
-        if (info.ne.0) write(6,*)"error with dgesv in parameter ",info
-        delX = b
-c        
-		DMAXOLD=DMAX
-		DMAX=MAXVAL(ABS(DELX))
-		OLD=XVAR
- 17		XVAR=OLD+delX
-		IF(MAXVAL(ABS(DELX)).ge.2.0/NITER.or.XVAR(1).gt.0)THEN
-			delX=delX/2
-			go to 17
-		END IF
-		Vx=exp(XVAR(3))
-		Vy=exp(XVAR(4))
-		X(1)=exp(XVAR(1))
-		X(2)=1.0D0-X(1)
-		Y(2)=exp(XVAR(2))
-		Y(1)=1.0D0-Y(2)
-		T=exp(XVAR(5))
-		call Bcalc(Y,T,BmixY)
-		call Bcalc(X,T,BmixX)
-		if (Vx.lt.1.01*BmixX.or.Vy.lt.1.01*BmixY)then
-			delX=delX/2
-			go to 17
-		end if
-		FMAXOLD=FMAX
-		FMAX=MAXVAL(ABS(F))
-		if(DMAX.lt.1.0D-5.and.FMAX*DMAX.lt.1.0D-10)exit
-	END DO
-	X1=X(1)
-	Y2=Y(2)
-	end
-C
-c
-	subroutine PzpointBin(IZ,P,T,X1,Y2) ! Adapted from TxyZone (specifying x1 or y2)
-c
-c	 T: guess for temperature
-c	X1: molar fraction of comp. 1 in the first phase (fixed for IZ=1, guessed for IZ=2)
-c	Y2: molar fraction of comp. 2 in the second phase (fixed for IZ=2, guessed for IZ=1)
-c	
-      implicit double precision (A-H,O-Z)
-      PARAMETER (nco=2,RGAS=0.08314472d0,eps=1.0d-7)
-C
-c	The independent variables are lnX,lnY2,lnVx,lnVy,lnT
-c	we use X<Y
-c	The equations are 2 equipressure, 2 equifugacity and specification.
-      DIMENSION X(2),Y(2),IPH(2),b(5),ipiv(5)
-      DIMENSION XVAR(5),F(5),dFdS(5),dXdS(5),delX(5),RJAC(5,5),AJ(5,5)
-      DIMENSION FUGx(2),FUGy(2),FUGTx(2),FUGTy(2),FUGVx(2),FUGVy(2)
-      DIMENSION DFGNx(2,2),DFGNy(2,2),DFG1NTP(2)
-      DIMENSION DPDNx(2),DPDNy(2),OLD(5)
- 	dimension Arn(nco),ArVn(nco),ArTn(nco)
-	COMMON/UNIT/NOUT
-	COMMON/Pder/ DPDN(2),DPDT,DPDV
-	TOLF=1.0D-5	! for residuals
-	TOL= 1.0D-6	! for variables
-	N=5	! DLSARG CONSTANTS (now dgesv in MKL)
-	LDA=5
-	ldb=5
-c	IPATH=1
-	DFDS=0.0D0
-	DFDS(5)=-1.0D0
-	NS=IZ  ! ln(X1) or ln(Y2) to be specified
-	IPH=[1,-1]
-	XVAR(5)=log(T)
-	XVAR(1)=log(X1)
-	XVAR(2)=log(Y2)
-	X=[X1,1.0D0-X1]
-	Y=[1.0D0-Y2,Y2]
-	CALL VCALC(IPH(1),2,X,T,P,V)
-	Vx=V
-	XVAR(3)=log(V)
-	CALL VCALC(IPH(2),2,Y,T,P,V)
-	Vy=V
-	XVAR(4)=log(V)
- 14	NITER=0
-	FMAXOLD=8.0D0
-	FMAX=7.0D0
-	DMAXOLD=8.0D0
-	DMAX=7.0D0
-	RJAC(5,1:5)=0.0D0
-	F(5)=0.0D0		! log(X1 or Y2) - S (composition specified)
-	RJAC(5,IZ)=1.0D0
-c	Newton procedure for solving the present point
-	DO WHILE (DMAX.GT.TOL.or.FMAX.GT.TOLF)
-		IF ((FMAX.GT.FMAXOLD.and.DMAX.GT.DMAXOLD).or.niter.GE.10) THEN
-			WRITE(NOUT,*) 'NITER PT= ', NITER
-			if(niter.GE.20)exit
-		END IF
-	    NITER=NITER+1
- 21		CALL XTVTERMO(4,T,Vx,Px,X,FUGx,FUGTx,FUGVx,DFGNx)
-c		INDIC=4 (T derivatives are required)
-	    DPDNx=DPDN
-	    DPDVx=DPDV
-	    DPDTx=DPDT
-		CALL XTVTERMO(4,T,Vy,Py,Y,FUGy,FUGTy,FUGVy,DFGNy)
-	    DPDNy=DPDN
-	    DPDVy=DPDV
-	    DPDTy=DPDT
-		IBACK=0
-		if(Px.lt.0.8*P.OR.(Px.gt.1.2*P.and.Px-P.gt.1.d-10))then
-			Vxold=Vx
-			call Bcalc(X,T,Bmix)
-			if(DPDVx.lt.0)then
-				Vx=max(0.9*Vx,Vx+(P-Px)/DPDVx,1.005*Bmix)
-C				if(Vx.eq.Vxold)go to 11  ! return
-			else	! mechanical instability region
-				Vx=max(0.9*Vx,1.005*Bmix)
-			end if
-			XVAR(3)=log(Vx)
-			IBACK=1
-		end if
-		if(Py.lt.0.8*P.OR.(Py.gt.1.2*P.and.Py-P.gt.1.d-10))then
-			Vyold=Vy
-			call Bcalc(Y,T,Bmix)
-			if(DPDVy.lt.0)then
-				Vy=max(0.9*Vy,Vy+(P-Py)/DPDVy,1.005*Bmix)
-C				if(Vy.eq.Vyold)go to 11  ! return
-			else	! mechanical instability region
-				Vy=max(0.9*Vy,1.005*Bmix)
-			end if
-			XVAR(4)=log(Vy)
-			IBACK=1
-		end if
-		if(IBACK.EQ.1) go to 21
-		if((Vy.gt.Vx.and.(Px.lt.P/2.OR.Px.gt.2*P)).or.
-	1		(Vx.gt.Vy.and.(Py.lt.P/2.OR.Py.gt.2*P)))then
-			Vxold=Vx
-			if(DPDVx.lt.0)then  ! very important for convergence and accuracy of P at low T
-				Vx=max(0.9*Vx,Vx+(P-Px)/DPDVx)
-C				if(Vx.eq.Vxold)go to 11  ! return
-			else	! mechanical instability region
-				Vx=0.9*Vx
-			end if
-			XVAR(3)=log(Vx)
-			Vyold=Vy
-			if(DPDVy.lt.0)then  ! very important for convergence and accuracy of P at low T
-				Vy=max(0.9*Vy,Vy+(P-Py)/DPDVy)
-			else	! mechanical instability region
-				Vy=0.9*Vy
-			end if
-			XVAR(4)=log(Vy)
-			go to 21
-		end if
-		F(1)=log(Px/P)
-		F(2)=log(Py/P)
-		F(3)=FUGx(1)-FUGy(1)
-		F(4)=FUGx(2)-FUGy(2)
-C
-		RJAC(1,1)=x(1)*(DPDNx(1)-DPDNx(2))/Px
-		RJAC(2,2)=-Y(2)*(DPDNy(1)-DPDNy(2))/Py
-		RJAC(1,3)=Vx*DPDVx/Px	! (1,2)=(2,1)=(1,4)=(2,3)=0
-		RJAC(2,4)=Vy*DPDVy/Py
-		RJAC(1,5)=T*DPDTx/Px
-		RJAC(2,5)=T*DPDTy/Py
-C
-		RJAC(3:4,1)=x(1)*(DFGNx(1:2,1)-DFGNx(1:2,2))
-		RJAC(3:4,2)=Y(2)*(DFGNy(1:2,1)-DFGNy(1:2,2))
-		RJAC(3:4,3)=Vx*FUGVx(1:2)
-		RJAC(3:4,4)=-Vy*FUGVy(1:2)
-		RJAC(3:4,5)=T*(FUGTx(1:2)-FUGTy(1:2))
-C
-c		CALL DLSARG (N, RJAC, LDA, -F, IPATH, delX)
-c       call dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
-        b = -F
-        AJ=RJAC
-        call dgesv( N, 1, AJ, lda, ipiv, b, ldb, info )
-        if (info.ne.0) write(6,*)"error with dgesv in parameter ",info
-        delX = b
-c        
-		DMAXOLD=DMAX
-		DMAX=MAXVAL(ABS(DELX))
-		OLD=XVAR
- 17		XVAR=OLD+delX
-		IF(MAXVAL(ABS(DELX)).ge.6.0/NITER.or.XVAR(1).gt.0)THEN
-			delX=delX/2
-			go to 17
-		END IF
-		Vx=exp(XVAR(3))
-		Vy=exp(XVAR(4))
-		if(IZ.EQ.2)then
-			X(1)=exp(XVAR(1))
-			X(2)=1.0D0-X(1)
-		else
-			Y(2)=exp(XVAR(2))
-			Y(1)=1.0D0-Y(2)
-		end if
-		T=exp(XVAR(5))
-		call Bcalc(Y,T,BmixY)
-		call Bcalc(X,T,BmixX)
-		if (Vx.lt.1.01*BmixX.or.Vy.lt.1.01*BmixY)then
-			delX=delX/2
-			go to 17
-		end if
-		FMAXOLD=FMAX
-		FMAX=MAXVAL(ABS(F))
-		if(DMAX.lt.1.0D-5.and.FMAX*DMAX.lt.1.0D-10)exit
-	END DO
-	X1=X(1)
-	Y2=Y(2)
-	end
-C
-c
-	subroutine TzpointBin(IZ,P,T,X1,Y2) ! Adapted from PxyZone (specifying x1 or y2)
-c
-c	 P: guess for pressure
-c	X1: molar fraction of comp. 1 in the first phase (fixed for IZ=1, guessed for IZ=2)
-c	Y2: molar fraction of comp. 2 in the second phase (fixed for IZ=2, guessed for IZ=1)
-c	
-      implicit double precision (A-H,O-Z)
-      PARAMETER (nco=2,RGAS=0.08314472d0,eps=1.0d-7)
-C
-c	The independent variables are lnX,lnY2,lnVx,lnVy,lnT
-c	we use X<Y
-c	The equations are 2 equipressure, 2 equifugacity and specification.
-      DIMENSION X(2),Y(2),IPH(2),b(4),ipiv(4)
-      DIMENSION XVAR(4),F(4),dFdS(4),dXdS(4),delX(4),RJAC(4,4),AJ(4,4)
-      DIMENSION FUGx(2),FUGy(2),FUGT(2),FUGVx(2),FUGVy(2)
-      DIMENSION DFGNx(2,2),DFGNy(2,2),DFG1NTP(2)
-      DIMENSION DPDNx(2),DPDNy(2),OLD(4)
- 	dimension Arn(nco),ArVn(nco),ArTn(nco)
-	COMMON/UNIT/NOUT
-	COMMON/Pder/ DPDN(2),DPDT,DPDV
-	TOLF=1.0D-5	! for residuals
-	TOL= 1.0D-6	! for variables
-	N=4	! DLSARG CONSTANTS (now dgesv in MKL)
-	LDA=4
-	ldb=4
-c	IPATH=1
-	DFDS=0.0D0
-	DFDS(4)=-1.0D0
-	NS=IZ  ! ln(X1) or ln(Y2) to be specified
-	IPH=[1,-1]
-	XVAR(1)=log(X1)
-	XVAR(2)=log(Y2)
-	X=[X1,1.0D0-X1]
-	Y=[1.0D0-Y2,Y2]
-	CALL VCALC(IPH(1),2,X,T,P,V)
-	Vx=V
-	XVAR(3)=log(V)
-	CALL VCALC(IPH(2),2,Y,T,P,V)
-	Vy=V
-	XVAR(4)=log(V)
- 14	NITER=0
-	FMAXOLD=8.0D0
-	FMAX=7.0D0
-	DMAXOLD=8.0D0
-	DMAX=7.0D0
-	RJAC(4,1:4)=0.0D0
-	F(4)=0.0D0		! log(X1 or Y2) - S (composition specified)
-	RJAC(4,IZ)=1.0D0
-c	Newton procedure for solving the present point
-	DO WHILE (DMAX.GT.TOL.or.FMAX.GT.TOLF)
-		IF ((FMAX.GT.FMAXOLD.and.DMAX.GT.DMAXOLD).or.niter.GE.10) THEN
-			WRITE(NOUT,*) 'NITER PT= ', NITER
-			if(niter.GE.20)exit
-		END IF
-	    NITER=NITER+1
- 21		CALL XTVTERMO(3,T,Vx,Px,X,FUGx,FUGT,FUGVx,DFGNx)
-	    DPDNx=DPDN
-	    DPDVx=DPDV
-		CALL XTVTERMO(3,T,Vy,Py,Y,FUGy,FUGT,FUGVy,DFGNy)
-	    DPDNy=DPDN
-	    DPDVy=DPDV
-		IBACK=0
-	  if(Vy.gt.Vx)then
-		if(Py.gt.0.d0.and.  	! to prevent case LL when both P<0
-	1	(Px.lt.Py/2.OR.(Px.gt.2*Py.and.Px-Py.gt.1.d-10)))then
-			Vxold=Vx
-			call Bcalc(X,T,Bmix)
-			if(DPDVx.lt.0)then  ! very important for convergence and accuracy of P at low T
-				Vx=max(0.9*Vx,Vx+(Py-Px)/DPDVx,1.005*Bmix)
-				if(Vx.eq.Vxold)exit
-			else	! mechanical instability region
-				Vx=max(0.9*Vx,1.005*Bmix)
-			end if
-			XVAR(3)=log(Vx)
-			go to 21
-		end if
-	  else		! when vapour is the x phase
-		if(Px.gt.0.d0.and.   	! to prevent case LL when both P<0
-	1	(Py.lt.Px/2.OR.(Py.gt.2*Px.and.Py-Px.gt.1.d-10)))then
-			Vyold=Vy
-			call Bcalc(Y,T,Bmix)
-			if(DPDVy.lt.0)then  ! very important for convergence and accuracy of P at low T
-				Vy=max(0.9*Vy,Vy+(Px-Py)/DPDVy,1.005*Bmix)
-				if(Vy.eq.Vyold)exit
-			else	! mechanical instability region
-				Vy=max(0.9*Vy,1.005*Bmix)
-			end if
-			XVAR(4)=log(Vy)
-			go to 21
-		end if
-	  end if
-	  if((Vy.gt.Vx.and.Py.lt.0.d0).or.(Vy.lt.Vx.and.Px.lt.0.d0))then
-		if(Px.lt.0.8*P.OR.(Px.gt.1.2*P.and.Px-P.gt.1.d-10))then
-			Vxold=Vx
-			call Bcalc(X,T,Bmix)
-			if(DPDVx.lt.0)then
-				Vx=max(0.9*Vx,Vx+(P-Px)/DPDVx,1.005*Bmix)
-C				if(Vx.eq.Vxold)go to 11  ! return
-			else	! mechanical instability region
-				Vx=max(0.9*Vx,1.005*Bmix)
-			end if
-			XVAR(3)=log(Vx)
-			IBACK=1
-		end if
-		if(Py.lt.0.8*P.OR.(Py.gt.1.2*P.and.Py-P.gt.1.d-10))then
-			Vyold=Vy
-			call Bcalc(Y,T,Bmix)
-			if(DPDVy.lt.0)then
-				Vy=max(0.9*Vy,Vy+(P-Py)/DPDVy,1.005*Bmix)
-C				if(Vy.eq.Vyold)go to 11  ! return
-			else	! mechanical instability region
-				Vy=max(0.9*Vy,1.005*Bmix)
-			end if
-			XVAR(4)=log(Vy)
-			IBACK=1
-		end if
-	  end if
-	  if(IBACK.EQ.1) go to 21
-		F(1)=log(Px/Py)
-		F(2)=FUGx(1)-FUGy(1)
-		F(3)=FUGx(2)-FUGy(2)
-C
-		RJAC(1,1)=x(1)*(DPDNx(1)-DPDNx(2))/Px
-		RJAC(1,2)=Y(2)*(DPDNy(1)-DPDNy(2))/Py
-		RJAC(1,3)=Vx*DPDVx/Px
-		RJAC(1,4)=-Vy*DPDVy/Py
-C
-		RJAC(2:3,1)=x(1)*(DFGNx(1:2,1)-DFGNx(1:2,2))
-		RJAC(2:3,2)=Y(2)*(DFGNy(1:2,1)-DFGNy(1:2,2))
-		RJAC(2:3,3)=Vx*FUGVx(1:2)
-		RJAC(2:3,4)=-Vy*FUGVy(1:2)
-C
-c		CALL DLSARG (N, RJAC, LDA, -F, IPATH, delX)
-c       call dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
-        b = -F
-        AJ=RJAC
-        call dgesv( N, 1, AJ, lda, ipiv, b, ldb, info )
-        if (info.ne.0) write(6,*)"error with dgesv in parameter ",info
-        delX = b
-c        
-		DMAXOLD=DMAX
-		DMAX=MAXVAL(ABS(DELX))
-		OLD=XVAR
- 17		XVAR=OLD+delX
-		IF(MAXVAL(ABS(DELX)).ge.6.0/NITER.or.XVAR(1).gt.0)THEN
-			delX=delX/2
-			go to 17
-		END IF
-		Vx=exp(XVAR(3))
-		Vy=exp(XVAR(4))
-		if(IZ.EQ.2)then
-			X(1)=exp(XVAR(1))
-			X(2)=1.0D0-X(1)
-		else
-			Y(2)=exp(XVAR(2))
-			Y(1)=1.0D0-Y(2)
-		end if
-		call Bcalc(Y,T,BmixY)
-		call Bcalc(X,T,BmixX)
-		if (Vx.lt.1.01*BmixX.or.Vy.lt.1.01*BmixY)then
-			delX=delX/2
-			go to 17
-		end if
-		FMAXOLD=FMAX
-		FMAX=MAXVAL(ABS(F))
-		if(DMAX.lt.1.0D-5.and.FMAX*DMAX.lt.1.0D-10)exit
-	END DO
-	X1=X(1)
-	Y2=Y(2)
-	P=(Px+Py)/2
-	end
-C
-	subroutine PTxyFUG(P,T,X1,Y1,dfug) 
-c
-      implicit double precision (A-H,O-Z)
-      PARAMETER (nco=2,RGAS=0.08314472d0,eps=1.0d-7)
-C
-      DIMENSION X(2),Y(2),IPH(2)
-      DIMENSION FUGx(2),FUGy(2),FUGT(2),FUGVx(2),FUGVy(2)
-      DIMENSION DFGNx(2,2),DFGNy(2,2),DFG1NTP(2)
-      DIMENSION dfug(2)
-	IPH=[1,-1]
-	X=[X1,1.0D0-X1]
-	Y=[Y1,1.0D0-Y1]
-c	Y=[1.0D0-Y2,Y2]
-	CALL VCALC(IPH(1),2,X,T,P,V)
-	Vx=V
-	CALL VCALC(IPH(2),2,Y,T,P,V)
-	Vy=V
-	CALL XTVTERMO(3,T,Vx,Px,X,FUGx,FUGT,FUGVx,DFGNx)
-	CALL XTVTERMO(3,T,Vy,Py,Y,FUGy,FUGT,FUGVy,DFGNy)
-	dfug(1)=FUGx(1)-FUGy(1)
-	dfug(2)=FUGx(2)-FUGy(2)
-C
-	end
-C
+SUBROUTINE XTVTERMO(INDIC, T, V, P, rn, FUGLOG, DLFUGT, DLFUGV, DLFUGX)
+   !
+   !-------parameters of XTVTERMO (crit. point, LLV and CEP calculations)
+   !
+   !       rn        mixture mole numbers                     (input)
+   !       t         temperature (k)                          (input)
+   !       v         volume      (L)                          (input)
+   !       p         pressure    (bar)                        (output)
+   !       FUGLOG    vector of log. of fugacities (x*phi*P)   (output)        INDIC < 5
+   !       DLFUGT    t-derivative of FUGLOG (const. vol,n)    (output)        INDIC = 2 or 4
+   !       DLFUGV    vol-derivative of FUGLOG (const temp,n)  (output)        INDIC < 5
+   !       DLFUGX    comp-derivative of FUGLOG (const t & v)  (output)        INDIC > 2
+   !---------------------------------------------------
+   !---  MODifIED AND CORRECTED july 2005
+   !---
+   !---------------------------------------------------
+   IMPLICIT DOUBLE PRECISION(A - H, O - Z)
+   PARAMETER(MAXC=2, nco=2, RGAS=0.08314472d0)
+   DIMENSION DLFUGX(MAXC, MAXC)
+   DIMENSION FUGLOG(MAXC), DLFUGT(MAXC), DLFUGV(MAXC)
+   dimension rn(nco), Arn(nco), ArVn(nco), ArTn(nco), Arn2(nco, nco)
+   COMMON/MODEL/NMODEL
+   COMMON/NG/NGR
+   COMMON/Pder/DPDN(nco), DPDT, DPDV
+
+   NG = NGR
+   NC = 2
+   ! if(NMODEL.EQ.5) CALL PARAGC(T,NC,NG,1)
+   NTEMP = 0
+   IGZ = 0
+   NDER = 1
+
+   if (INDIC .GT. 2) NDER = 2
+   if (INDIC .EQ. 2 .OR. INDIC .EQ. 4) NTEMP = 1
+
+   TOTN = sum(rn)
+   RT = RGAS*T
+
+   call ArVnder(NDER, NTEMP, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn, Arn2)
+
+   P = TOTN*RT/V - ArV
+   DPDV = -ArV2 - RT*TOTN/V**2
+
+   if (INDIC <= 4) then
+      ! Z = P*V/(TOTN*RT)
+      DPDT = -ArTV + TOTN*RGAS/V
+
+      do I = 1, NC
+         if (RN(I) > 0.0) then
+            ! FUGLOG(I)=-LOG(Z)+Arn(I)/RT + log(rn(I)/TOTN) + log(P)
+            ! FUGLOG(I)=Arn(I)/RT + log(rn(I)/TOTN) + log(P/Z) this crashes at very low T LLV when Z=P=0.000000...
+            FUGLOG(I) = Arn(I)/RT + log(rn(I)) + log(RT/V)
+            DPDN(I) = RT/V - ArVn(I)
+            DLFUGV(I) = -DPDN(I)/RT                                       ! term DPDV/P is cancelled out
+            if (NTEMP /= 0) DLFUGT(I) = (ArTn(I) - Arn(I)/T)/RT + 1.D0/T  ! term DPDT/P is cancelled out
+         end if
+      end do
+   end if
+
+   if (NDER >= 2) then
+      do I = 1, NC
+         do K = I, NC
+            DLFUGX(I, K) = Arn2(I, K)/RT ! term 1/TOTN is cancelled out
+            DLFUGX(K, I) = DLFUGX(I, K)
+         end do
+         DLFUGX(I, I) = DLFUGX(I, I) + 1.0/rn(I)
+      end do
+   end if
+end subroutine
+
+SUBROUTINE TERMO(MTYP, INDIC, IC, T, P, rn, V, PHILOG, DLPHIT, DLPHIP, FUGN)
+   IMPLICIT DOUBLE PRECISION(A - H, O - Z)
+   PARAMETER(MAXC=2, nco=2, RGAS=0.08314472d0)
+   DIMENSION FUGN(MAXC, MAXC)
+   DIMENSION PHILOG(MAXC), DLPHIT(MAXC), DLPHIP(MAXC), DPDN(MAXC)
+   dimension rn(nco), Arn(nco), ArVn(nco), ArTn(nco), Arn2(nco, nco)
+   ! The output PHILOG is actually the vector ln(phi(i)*P)
+   NC = 2
+   NTEMP = 0
+   IGZ = 0
+   NDER = 1
+
+   if (INDIC .GT. 2) NDER = 2
+   if (INDIC .EQ. 2 .OR. INDIC .EQ. 4) NTEMP = 1
+   TOTN = sum(rn)
+   if (P .le. 0.0d0) MTYP = 1
+
+   CALL VCALC(MTYP, NC, rn, T, P, V)
+   RT = RGAS*T
+   Z = V/(TOTN*RT)        ! this is Z/P
+
+   call ArVnder(NDER, NTEMP, rn, V, T, Ar, ArV, ArTV, ArV2, Arn, ArVn, ArTn, Arn2)
+   DPV = -ArV2 - RT*TOTN/V**2
+   DPDT = -ArTV + TOTN*RGAS/V
+
+   DO I = 1, NC
+      PHILOG(I) = -LOG(Z) + Arn(I)/RT
+      DPDN(I) = RT/V - ArVn(I)
+      DLPHIP(I) = -DPDN(I)/DPV/RT - 1.D0/P
+      if (NTEMP /= 0) DLPHIT(I) = (ArTn(I) - Arn(I)/T)/RT + DPDN(I)*DPDT/DPV/RT + 1.D0/T
+   end do
+
+   if (nder >= 2) then
+      do I = 1, NC
+         do K = I, NC
+            FUGN(I, K) = 1.D0/TOTN + (Arn2(I, K) + DPDN(I)*DPDN(K)/DPV)/RT
+            FUGN(K, I) = FUGN(I, K)
+         end do
+      end do
+   end if
+end subroutine
