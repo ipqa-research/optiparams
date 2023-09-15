@@ -1,8 +1,8 @@
-c     26/02/2011 Nueva función objetivo y agregado de posibles KP extra (ver common EXTRAKP)
+c     26/02/2011 Nueva funciï¿½n objetivo y agregado de posibles KP extra (ver common EXTRAKP)
 c
-c	versión del 20/03/2010 combinando las últimas mejoras previas con una actualización de la Función Objetivo, 
-c	para dar mas peso a las fases livianas: términos 11 a 15 (parte LLV)
-c											términos FV(jf+1) y FV(jf+3) en el DO NTP
+c	versiï¿½n del 20/03/2010 combinando las ï¿½ltimas mejoras previas con una actualizaciï¿½n de la Funciï¿½n Objetivo, 
+c	para dar mas peso a las fases livianas: tï¿½rminos 11 a 15 (parte LLV)
+c											tï¿½rminos FV(jf+1) y FV(jf+3) en el DO NTP
 c	Al 30/09/2010: agregando Type I
 c	Al  3/11/2010: agregados Type II & IV
 c
@@ -225,12 +225,12 @@ c QMR
 	END IF
 c
 	if(idata.eq.1)then
-! Case  I  (NK=2): Pc(T), Xc(T) [possible second Pc, Xc after NFUG]
-! Case  II (NK=5): Pc(T), Xc(T),Xlo,Ylo,Tu
-! Case III(NK=10): T994,Tm,Pm,P393,Tu,Xu,Xlo,Ylo   (NKeffective=8, NK=10 with Xmi,Ymi)
-! Case  IV (NK=8): Pc(T), Xc(T),Xlo,Ylo,Tu,TL,Tk,xk
-! Case  V  (NK=7): Pc(T), Xc(T),Xlo,Ylo,TL,Tk,xk        ! added 09/01/2013
-! the number of compositional key-points is (NK+1)/2 truncated in each case
+		! Case  I  (NK=2): Pc(T), Xc(T) [possible second Pc, Xc after NFUG]
+		! Case  II (NK=5): Pc(T), Xc(T),Xlo,Ylo,Tu
+		! Case III(NK=10): T994,Tm,Pm,P393,Tu,Xu,Xlo,Ylo   (NKeffective=8, NK=10 with Xmi,Ymi)
+		! Case  IV (NK=8): Pc(T), Xc(T),Xlo,Ylo,Tu,TL,Tk,xk
+		! Case  V  (NK=7): Pc(T), Xc(T),Xlo,Ylo,TL,Tk,xk        ! added 09/01/2013
+		! the number of compositional key-points is (NK+1)/2 truncated in each case
 		do I=1,NK	
 			read(NUNIT,*)DAT(i)
 		end do
@@ -301,7 +301,21 @@ c
 		    WRITE(NOUT,*) '   K12     L12      F'
 		end if
 	end if
-	
+
+	! sweep: block
+	! Block of code to do a sweep over two parameters of the objective function
+	! integer :: var_1, var_2
+	! real(8) :: fval
+	! if (n == 2) then
+	! 	do var_1=-100, 100
+	! 		do var_2=-100,100
+	! 			XGUESS = [var_1, var_2]/5000.d0
+	! 			 fval = F(XGUESS, N)   ! SUBROUTINE ObjFun (N, X, F)
+	! 			 print "(A, 3(D15.5))", "SWEEP", var_1/1000.d0, var_2/1000.d0, fval
+	! 		end do
+	! 	end do
+	! end if
+	! end block sweep
       if (N==1) then ! armado para Lij 8/9/2014 (valid also for K0 12/9/2017)
   7     WRITE(NOUT,*) ' d1 for comp2: ',del1(2)
         rmin=XGUESS(1)-0.01
@@ -332,6 +346,7 @@ c
           WRITE (6,*) ' otherwise, 8 parameters free'
 	    READ (5,*)nchange
       end if
+
       if (nchange==1)then
          Nfree = 4
 		 Tstar1=1.0D3*XGUESS(7)
@@ -351,7 +366,13 @@ c
      1              XGUESS(7:8)]  ! for printing the solution
       else
 c            PRAXIS( T0 , MACHEP , H0, N,PRIN, X, F,FMIN)
-         Fmin = PRAXIS(3.D-5,2.22D-16,1.D-4,N,3,XGUESS,F,1D-2)
+		 print *, f(xguess, n)
+	     call nm_opt(xguess, n)
+		 print *, f(xguess, n)
+		 write(nout, "(G)") "NM: ", xguess, "F: ", f(xguess, n)
+         print *, "PRAXIS", xguess
+		 ! call exit
+         Fmin = PRAXIS(3.D-5,2.22D-16,1.D-7,N,3,XGUESS,F,fmin)
       end if
 C
 C      call MKL_Optimize(N,XGUESS)
@@ -3004,7 +3025,7 @@ c	IPATH=1
 c	Newton procedure for solving the present point
 	DO WHILE (DMAX.GT.TOL.or.FMAX.GT.TOLF)
 		IF ((FMAX.GT.FMAXOLD.and.DMAX.GT.DMAXOLD).or.niter.GE.10) THEN
-			WRITE(NOUT,*) 'NITER PT= ', NITER
+			! WRITE(NOUT,*) 'NITER PT= ', NITER
 			if(niter.GE.25)exit
 		END IF
 	    NITER=NITER+1
@@ -3483,3 +3504,29 @@ c	Y=[1.0D0-Y2,Y2]
 C
 	end
 C
+	subroutine nm_opt(xguess, n)
+	  integer :: n
+	  real(8) :: xguess(n)
+      real(8) :: start(n), xmin(n), ynewlo, reqmin=3.0d-15, step(n)
+      integer :: konvge=100, kcount=100000
+      integer :: icount, numres, ifault
+
+      step = 1d-3
+
+	  start = xguess
+
+      print *, "NM"
+      call nelmin ( nm_f, n, start, xmin, ynewlo, reqmin, step, konvge,
+     &              kcount, icount, numres, ifault )
+
+	  xguess = xmin
+	  print *, ifault, numres
+	  contains
+      function nm_f(xx)
+		 external :: F
+		 real(8) :: F
+         real(8) :: xx(*)
+         real(8) :: nm_f
+         nm_f = F(xx, N)
+      end function
+	end subroutine
