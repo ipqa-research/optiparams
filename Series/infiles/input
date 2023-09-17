@@ -1,0 +1,40 @@
+2	Npar	1  1	kwithac (if 1, k0 depends on ac(2)), Lexp(if 1, L has an exponential dependence on difdel1)
+3	model (1: SRK / 2: PR76 / 3:RKPR)
+1	Number of systems / (higher) alkanes with data considered
+0 1	Mixing Rules - Tdep
+Nitrogen          
+126.2000   34.0000  0.102297  0.03772 2.0
+1.3910  0.026542  1.121928   1.58718
+Nitrogen          
+126.2000   34.0000  0.102297  0.03772 2.0
+1.3910  0.026542  1.121928   1.58718
+0.1		    K0 		just to use the classic reading subroutine
+0.00 		Kinf    this one stays
+126.2   	Tstar 	this one stays
+0.00    	L12	  	just to use the classic reading subroutine
+2050 		Phigh for all systems (bar)
+0.03772   	First component acentric factor
+
+2	1	7	5	0	0	0	NC Ica NK NTP NzP NzT NFUG
+190.5600   45.9900  0.011550  0.10391  2.0   Methane
+2.5333  0.026132  2.716100   1.12498         Methane
+40.5474		Pc	Wei Et al. (1995)
+0.82		Xc	Wei Et al. (1995)
+0.0		TU
+0.0		TL
+0.0		Tk
+50.33		Pc	Raabe Et al. (2001)
+0.3156		Xc	Raabe Et al. (2001)
+138.44		Tc	Wei Et al. (1995)
+172.04		Tc	Raabe Et al. (2001)
+127.59	13.7893	0.304	0.7662			Stryjek. R. et al (1974)67
+138.44	13.7893	0.149	0.5568			Stryjek. R. et al (1974)57
+149.82	44.7463	0.5866	0.6878			Stryjek. R. et al (1974)52
+160.93	19.0637	0.02968	0.1221			Stryjek. R. et al (1974)32
+177.59	44.8152	0.1391	0.2286			Stryjek. R. et al (1974)16
+
+-0.320  	ck
+0.071	  	dk
+0.050	 	bk for Kinf 
+30.437		refN
+2.30		ek
