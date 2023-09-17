@@ -1,0 +1,21 @@
+{
+    "makefile.extensionOutputFolder": "./.vscode",
+
+    "[FortranFixedForm]":{
+        "editor.tabSize":6,
+        "editor.rulers": [
+            {
+                "column": 5,
+                "color": "yellow"
+            },
+            {
+                "column": 6,
+                "color": "green"
+            },
+            {
+                "column": 72,
+                "color": "red"
+            }
+        ],
+}
+}
