@@ -3505,28 +3505,28 @@ C
 	end
 C
 	subroutine nm_opt(xguess, n)
-	  integer :: n
-	  real(8) :: xguess(n)
-      real(8) :: start(n), xmin(n), ynewlo, reqmin=3.0d-15, step(n)
-      integer :: konvge=100, kcount=100000
-      integer :: icount, numres, ifault
+         integer :: n
+         real(8) :: xguess(n)
+         real(8) :: start(n), xmin(n), ynewlo, reqmin=3.0d-15, step(n)
+         integer :: konvge=1000, kcount=1e8
+         integer :: icount, numres, ifault
 
-      step = 1d-3
+         step = -1d-3
 
-	  start = xguess
+         start = xguess
 
-      print *, "NM"
+         print *, "NM: ", xguess
       call nelmin ( nm_f, n, start, xmin, ynewlo, reqmin, step, konvge,
      &              kcount, icount, numres, ifault )
 
-	  xguess = xmin
-	  print *, ifault, numres
-	  contains
-      function nm_f(xx)
-		 external :: F
-		 real(8) :: F
-         real(8) :: xx(*)
-         real(8) :: nm_f
-         nm_f = F(xx, N)
-      end function
+	   xguess = xmin
+	   print *, ifault, numres
+	contains
+         function nm_f(xx)
+            external :: F
+            real(8) :: F
+            real(8) :: xx(*)
+            real(8) :: nm_f
+            nm_f = F(xx, N)
+         end function
 	end subroutine
