@@ -1,0 +1,39 @@
+2 1   npar, idata(0: only PTxy - 1: Global key points)
+0	  ipar(When npar=2 and Kij Tdep... 0 for Kij' and KijInf ; 1 for Lij and Kij0)
+3     nmodel
+0 1	  ncomb, NTDEP
+Nitrogen
+126.2000   34.0000  0.102297  0.03772 2.0
+1.3910  0.026542  1.121928   1.58718
+Methane
+190.5600   45.9900  0.011550  0.10391  2.0
+2.5333  0.026132  2.716100   1.12498
+0.1 K0
+0.01 Kinf
+126.1  Tstar
+0.00		just to use the same reading subroutine as in GPEC
+1500
+40.5474  Pc Stryjek, R. et al (1974)7
+0.82     Xc Stryjek, R. et al (1974)7
+138.44   Tc Stryjek, R. et al (1974)7
+16		NTP 	(Número de condiciones de T y P)
+91.70	0.212	0.009	0.295			Cheung. H. et al (1964)
+97.10	1.681	0.146	0.827			Cheung. H. et al (1964)
+113.71	13.8031	0.7495	0.94505			Stryjek. R. et al (1974)112
+113.71	5.1710	0.1671	0.766			Stryjek. R. et al (1974)109
+122.89	4.22	0.0511	0.4339			Jin. Z. et al. (1993)
+122.89	16.17	0.4975	0.873			Jin. Z. et al. (1993)
+127.59	13.7893	0.304	0.7662			Stryjek. R. et al (1974)67
+127.59	20.5461	0.5475	0.8564			Stryjek. R. et al (1974)68
+138.44	13.7893	0.149	0.5568			Stryjek. R. et al (1974)57
+138.44	27.0270	0.4593	0.7677			Stryjek. R. et al (1974)59
+149.82	13.9617	0.0514	0.2404			Stryjek. R. et al (1974)45
+149.82	27.3373	0.2579	0.5779			Stryjek. R. et al (1974)49
+160.93	19.0637	0.02968	0.1221			Stryjek. R. et al (1974)32
+160.93	48.9520	0.4527	0.5178			Stryjek. R. et al (1974)42
+172.04	26.8891	0.01689	0.05251			Stryjek. R. et al (1974)23
+177.59	44.8152	0.1391	0.2286			Stryjek. R. et al (1974)16
+0		NPZ	(Número de condiciones de P y z)
+0		NTZ	(Número de condiciones de T y z)
+0		NFUG
+0 		IntCri
