@@ -1,6 +1,7 @@
 #FC=gfortran
 #FFLAG=-Wall -Wextra
-FC=ifort -fast
+FC=ifort -g -extend-source
+#-fast
 
 deps:
 	$(FC) -c src/asa057.f90
@@ -12,6 +13,9 @@ deps:
 
 sist: deps
 	$(FC) -o sist ./Sistemas/OptimCMRKP2011.for obj/* -qmkl
+
+series: deps
+	$(FC) -o series ./Series/OptimQMRseries2017.f90 obj/* -qmkl
 
 clean:
 	rm obj/*
