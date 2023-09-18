@@ -4,6 +4,10 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Setup OneAPI",
+      "command": "${command:intel-corporation.oneapi-environment-configurator.initializeEnvironment}"
+    },
+    {
       "label": "make sist",
       "type": "shell",
       "command": "make",
@@ -11,7 +15,8 @@
       "group": {
         "kind": "build",
         "isDefault": true
-      }
+      },
+      "dependsOn":["Setup OneAPI"]
     },
     {
       "label": "make series",
@@ -21,7 +26,8 @@
       "group": {
         "kind": "build",
         "isDefault": true
-      }
+      },
+      "dependsOn":["Setup OneAPI"]
     },
     {
       "label": "fpm: install",
