@@ -303,19 +303,24 @@ c
 	end if
 
 	! sweep: block
-	! Block of code to do a sweep over two parameters of the objective function
-	! integer :: var_1, var_2
+	! ! Block of code to do a sweep over two parameters of the objective function
+	! integer :: var_1, var_2, funit
 	! real(8) :: fval
+	! open(newunit=funit, file="sweep")
 	! if (n == 2) then
-	! 	do var_1=-100, 100
-	! 		do var_2=-100,100
-	! 			XGUESS = [var_1, var_2]/5000.d0
-	! 			 fval = F(XGUESS, N)   ! SUBROUTINE ObjFun (N, X, F)
-	! 			 print "(A, 3(D15.5))", "SWEEP", var_1/1000.d0, var_2/1000.d0, fval
+	! 	do var_1=-250, 250
+	! 		do var_2=-250,250
+	! 			XGUESS = [var_1, var_2]/500.d0
+	! 			fval = F(XGUESS, N)   ! SUBROUTINE ObjFun (N, X, F)
+	! 			write(funit, "(3(E15.5))") XGUESS(1), XGUESS(2), fval
 	! 		end do
+	! 		write(funit, *) ""
 	! 	end do
 	! end if
+	! close(funit)
 	! end block sweep
+	! call exit
+
       if (N==1) then ! armado para Lij 8/9/2014 (valid also for K0 12/9/2017)
   7     WRITE(NOUT,*) ' d1 for comp2: ',del1(2)
         rmin=XGUESS(1)-0.01
@@ -366,13 +371,15 @@ c
      1              XGUESS(7:8)]  ! for printing the solution
       else
 c            PRAXIS( T0 , MACHEP , H0, N,PRIN, X, F,FMIN)
-		 print *, f(xguess, n)
-	     call nm_opt(xguess, n)
-		 print *, f(xguess, n)
-		 write(nout, "(G)") "NM: ", xguess, "F: ", f(xguess, n)
-         print *, "PRAXIS", xguess
+		print *, "X0: ", xguess
+		print *, "F0: ", f(xguess, n)
+		call nm_opt(xguess, n, i_stat)
+		write(nout, "(G)") "NM: ", xguess, "F: ", f(xguess, n)
+		if (i_stat /= 1) then
+		print *, "PRAXIS", xguess
 		 ! call exit
-         Fmin = PRAXIS(3.D-5,2.22D-16,1.D-7,N,3,XGUESS,F,fmin)
+      	Fmin = PRAXIS(3.D-5,2.22D-16,1.D-7,N,3,XGUESS,F,fmin)
+		end if
       end if
 C
 C      call MKL_Optimize(N,XGUESS)
@@ -3504,23 +3511,46 @@ c	Y=[1.0D0-Y2,Y2]
 C
 	end
 C
-	subroutine nm_opt(xguess, n)
-         integer :: n
+	subroutine nm_opt(xguess, n, stat)
+	   implicit none
          real(8) :: xguess(n)
-         real(8) :: start(n), xmin(n), ynewlo, reqmin=3.0d-15, step(n)
-         integer :: konvge=1000, kcount=1e8
+         integer :: n
+	   integer :: stat
+         real(8) :: start(n), xmin(n), ynewlo, reqmin, step(n)
+         integer :: konvge, kcount
          integer :: icount, numres, ifault
+	   integer :: funit_settings
+	   integer :: iostat
 
-         step = -1d-3
+	   namelist /nm_settings/ konvge, kcount, step, reqmin
 
-         start = xguess
+	   funit_settings = 1
+	   ! Reading from the main input file
+	   read(funit_settings, nml=nm_settings, iostat=iostat)
 
-         print *, "NM: ", xguess
-      call nelmin ( nm_f, n, start, xmin, ynewlo, reqmin, step, konvge,
-     &              kcount, icount, numres, ifault )
+	   ! If namelist not found, set some defaults
+	   if (iostat /= 0) then
+		konvge = 1000
+		kcount = 1e8
+		step = 1d-3
+		reqmin = 1d-6
+	   end if
+         
+	   start = xguess
+	   print *, "=================="
+	   print *, "Nelder-Mead"
+         print *, "NM_0: ", xguess
+         call nelmin ( nm_f, n, start, xmin, ynewlo, reqmin, step,
+     &                 konvge, kcount, icount, numres, ifault )
 
 	   xguess = xmin
-	   print *, ifault, numres
+	   print *, "------------------"
+	   print *, "Stat: ", ifault
+	   print *, "Evals: ", icount
+	   print *, "X: ", xguess
+	   print *, "F: ", ynewlo
+	   print *, "=================="
+	   stat = ifault
 	contains
          function nm_f(xx)
             external :: F
