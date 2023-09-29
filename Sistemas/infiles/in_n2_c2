@@ -8,21 +8,22 @@ Nitrogen
 Ethane
 305.3200   48.7200  0.168482  0.09949 2.0
 5.8033  0.043357  1.586801   1.74709
-0.02 K0
-0.1 Kinf
+0.3 K0
+0.0 Kinf
 126.1   Tstar
 0.00	lij? just to use the same reading subroutine as in GPEC
 1500
-18		NTP 	(Número de condiciones de T y P)
+134.65   Pc
+0.6746   Xc
+194.26   Tc
+15		NTP 	(Número de condiciones de T y P)
 170.039	5.597	0.0184	0.9072			Janisch. J. et al. (2007)
-169.911	29.932	0.0114	0.9724			Janisch. J. et al. (2007)
 169.873	50.029	0.2041	0.9716			Janisch. J. et al. (2007)
 169.903	78.543	0.3394	0.9562			Janisch. J. et al. (2007)
 194.26	6.92	0.01612	0.7146			Stryjek. R. et al. (1974)
 194.26	55.71	0.1756	0.9154			Stryjek. R. et al. (1974)
 220	17.45	0.0356	0.6584			Brown. T.S. et al. (1989)
 220	58.29	0.1582	0.8264			Brown. T.S. et al. (1989)
-220	105.1	0.331	0.7982			Brown. T.S. et al. (1989)
 270	54.47	0.0985	0.4159			Brown. T.S. et al. (1989)
 260	20.86	0.0106	0.1375			Gupta. M.K. (1980)
 260	95.04	0.2714	0.5473			Gupta. M.K. (1980)
@@ -31,8 +32,42 @@ Ethane
 240	75.00	0.2006	0.7167			Zeck. S.et al. (1986)
 290	49.5377925	0.0464	0.1586			Grauso. L. et al. (1977)
 230	124.7614725	0.4543	0.665			Grauso. L. et al. (1977)
-230	80.715495	0.2266	0.7796			Grauso. L. et al. (1977)
 0		NPZ	(Número de condiciones de P y z)
 0		NTZ	(Número de condiciones de T y z)
 0		NFUG
 0 		IntCri
+
+! Configuracion de optimizador
+&nm_settings
+    konvge=1000 ! Passes to check convergence
+    kcount=1e8  ! Ammount of function evaluations
+    step=0.001, 0.001 ! Initial simplex step size
+    reqmin=1e-6
+/
+
+
+Inits (K0 y Kinf)
+=====
+0.0 ->  0.23
+0.0 -> -3.9E-2
+FO=4.22
+------------------
+0.1 ->  0.36
+0.0 -> -1.47E-2
+FO=3.59
+------------------
+0.2 -> 0.14
+0.0 -> 5.57E-3
+FO=3.53
+------------------
+0.3 -> -6.96E-2 
+0.0 ->  5.92E-2
+FO=2.92
+------------------
+0.4 ->  0.40
+0.0 -> -1.4E-2
+FO=4.03
+------------------
+0.1 -> -0.59
+0.1 ->  0.19
+FO = 4.92
