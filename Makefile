@@ -4,6 +4,7 @@ FC=ifort -g -extend-source
 #-fast
 
 deps:
+	mkdir -p obj
 	$(FC) -c src/asa057.f90
 	$(FC) -c src/praxis.f
 	$(FC) -c src/Pure.for
