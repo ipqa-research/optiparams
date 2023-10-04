@@ -1,0 +1,59 @@
+2 0   npar, idata(0: only PTxy - 1: Global key points)
+0	  ipar(When npar=2 and Kij Tdep... 0 for Kij' and KijInf ; 1 for Lij and Kij0)
+3     nmodel
+0 1	  ncomb, NTDEP
+Nitrogen
+126.2000   34.0000  0.037721  0.10231 2.0
+1.3909  0.026545  1.120000   1.58774
+n-Hexatriacontane
+873.6159    6.7939  1.52596  1.6539 2.0
+366.175  0.789  3.045   5.899
+0.3 K0
+0.5 Kinf
+126.2   Tstar
+0.00	lij just to use the same reading subroutine as in GPEC
+1500
+0       NTP (Número de condiciones de T y P)
+6		NPZ	(Número de condiciones de P y z)
+373.2	53	0.1054	0.9999	1  |Tong, J. et al. (1999)
+373.2	122.3	0.2089	0.9999	1  |Tong, J. et al. (1999)
+373.2	179.9	0.2749	0.9999	1  |Tong, J. et al. (1999)
+423.2	52.8	0.1185	0.9999	1  |Tong, J. et al. (1999)
+423.2	117.1	0.2263	0.9999	1  |Tong, J. et al. (1999)
+423.2	171.1	0.297	0.9999	1  |Tong, J. et al. (1999)
+0		NTZ	(Número de condiciones de T y z)
+0		NFUG
+0 		IntCri
+
+================================================================================
+Definiciones de bloques de datos
+
+NTP
+T P x1 y1
+
+NPZ 
+T P x1 y1 [1|2]  (1 for bubble and 2 for dew)
+
+NTZ 
+T P x1 y1 [1|2]  (1 for bubble and 2 for dew)
+================================================================================
+
+! Configuracion de optimizador
+&nm_settings
+    konvge=1000 ! Passes to check convergence
+    kcount=1e8  ! Ammount of function evaluations
+    step=0.1, 0.1 ! Initial simplex step size
+    reqmin=1e-6
+/
+
+ X0:   0.300000000000000       0.500000000000000     
+ F0:    19.1163647049839     
+ ==================
+ Nelder-Mead
+ NM_0:   0.300000000000000       0.500000000000000     
+ ------------------
+ Stat:            0
+ Evals:         2146
+ X:   0.368750000110102       0.487499999997997     
+ F:    17.0795838685094     
+ ==================

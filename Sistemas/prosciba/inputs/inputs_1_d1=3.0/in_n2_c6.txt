@@ -1,0 +1,80 @@
+2 1   npar, idata(0: only PTxy - 1: Global key points)
+0	  ipar(When npar=2 and Kij Tdep... 0 for Kij' and KijInf ; 1 for Lij and Kij0)
+3     nmodel
+0 1	  ncomb, NTDEP
+Nitrogen
+126.2000   34.0000  0.037721  0.09144 2.0
+1.5236  0.022860  3.000000   1.17566
+n-Hexane
+508.4936   30.3566  0.301261  0.31246 2.0
+27.425  0.105  2.789   2.273
+0.5    K0
+0.05  Kinf
+126.2   Tstar
+0.00	lij? just to use the same reading subroutine as in GPEC
+1500
+533.8   Pc
+0.7797  Xc
+344.6   Tc
+15		NTP 	(Número de condiciones de T y P)
+310.93	17.2	0.026	0.958
+310.93	206.7841	0.218	0.986
+310.93	344.6	0.359	0.98
+344.26	17.2	0.025	0.904
+344.26	103.4	0.144	0.973
+344.26	344.6	0.391	0.958
+377.55	34.5	0.047	0.869
+377.9	313.1	0.4555	0.9046
+377.9	209.7	0.3014	0.9335
+411	13.6	0.0141	0.5249
+411	106.5	0.177	0.8792
+411	209.3	0.3665	0.8662
+444.9	29.5	0.0403	0.541
+444.9	156.8	0.3344	0.7552
+488.4	40.3	0.0555	0.2683
+2		NPZ	(Número de condiciones de P y z)
+344.26	344.6	0.391	0.958
+377.9	402.6	0.6704	0.7946	1
+2		NTZ	(Número de condiciones de T y z)
+377.9	377.6	0.5846	0.8556	1
+488.4	40.3	0.0555	0.2683
+0		NFUG
+1 		IntCri
+295.7069   Pc
+0.69604  Xc
+410.95   Tc
+
+! Configuracion de optimizador
+&nm_settings
+    konvge=1000 ! Passes to check convergence
+    kcount=1e8  ! Ammount of function evaluations
+    step=0.001, 0.001 ! Initial simplex step size
+    reqmin=1e-6
+/
+
+================================================================================
+Comentarios:
+problema con el siguiente punto NTP, se iba a y<0:
+488.4	85.8	0.2295	0.3934			Eliosa-Jiménez. G. et al. (2007)
+================================================================================
+
+================================================================================
+Mejor óptimo encontrado:
+  ==================
+   Nelder-Mead
+   NM_0:   1.000000000000000E-002 -5.000000000000000E-002
+   ------------------
+   Stat:            0
+   Evals:         4137
+   X:   0.467532858107855      -7.263199889381645E-002
+   F:    12.9411431455032     
+   ==================
+  con:
+  ! Configuracion de optimizador
+  ! &nm_settings
+  !     konvge=1000 ! Passes to check convergence
+  !     kcount=1e8  ! Ammount of function evaluations
+  !     step=-0.001, 0.001 ! Initial simplex step size
+  !     reqmin=1e-6
+  ! /
+================================================================================
