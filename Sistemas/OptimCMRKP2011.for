@@ -10,7 +10,7 @@ c
 c	USE IMSL
       implicit double precision (A-H,O-Z)
 C      INCLUDE 'mkl_rci.fi'
-      CHARACTER*30 INFILE,OUTFILE 
+      CHARACTER*250 INFILE,OUTFILE 
       COMMON/UNITS/NUNIT,NOUT,idata,ipar,idel
 	COMMON /CASEOPT/ NCASE
       COMMON/EXTRAK/ IntCri, PcInt, XcInt, TcInt, islope, T9art
