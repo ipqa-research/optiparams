@@ -8,13 +8,13 @@ Nitrogen
 n-Eicosane
 767.6331   11.5889  0.906878  0.93072 2.0
 164.913  0.410  2.940   4.262
-0.3 K0
+4.3 K0
 0.5 Kinf
 126.2   Tstar
 0.00	lij just to use the same reading subroutine as in GPEC
 1500
 0       NTP (Número de condiciones de T y P)
-0		NPZ	(Número de condiciones de P y z)
+9		NPZ	(Número de condiciones de P y z)
 323.2	44.9	0.061	0.9999 1
 323.2	106.1	0.1292	0.9999 1
 323.2	172.3	0.1866	0.9999 1

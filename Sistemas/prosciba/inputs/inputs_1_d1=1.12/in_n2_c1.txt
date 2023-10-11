@@ -8,8 +8,8 @@ Nitrogen
 Methane
 190.5619   45.9908  0.011547  0.01840  2.0
 2.5333  0.026132  2.716100   1.12498
-0.01 K0
-0.03 Kinf
+0.03 K0
+0.0 Kinf
 126.2  Tstar
 0.00		just to use the same reading subroutine as in GPEC
 1500
@@ -42,34 +42,11 @@ Methane
 50.3309  Pc Stryjek, R. et al (1974)7
 0.3156     Xc Stryjek, R. et al (1974)7
 172.04   Tc Stryjek, R. et al (1974)7
+
 ! Configuracion de optimizador
 &nm_settings
     konvge=1000 ! Passes to check convergence
     kcount=1e8  ! Ammount of function evaluations
-    step=0.001, 0.001 ! Initial simplex step size
+    step=0.1, 0.1 ! Initial simplex step size
     reqmin=1e-6
 /
-
-
- ==================
- F0:    2.47283652758298     
- Nelder-Mead
- NM_0:   0.100000000000000       1.000000000000000E-002
- ------------------
- Stat:            0
- Evals:         2144
- X:   0.101992060150063       7.326259862800276E-003
- F:    2.27054038299273     
- ==================
-
- X0:   3.000000000000000E-002  1.000000000000000E-002
- F0:    2.51771090969628     
- ==================
- Nelder-Mead
- NM_0:   3.000000000000000E-002  1.000000000000000E-002
- ------------------
- Stat:            0
- Evals:         2065
- X:   3.785919762828713E-002  1.950323791384729E-002
- F:    1.34934966874405     
- ==================
