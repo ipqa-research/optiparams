@@ -218,9 +218,9 @@ c QMR
 			XGUESS(1)=Kij(1,2)
 			READ(NUNIT,*) XGUESS(2)	!L12
 		else	! N=1 (l12)
-            WRITE(NOUT,*) '   L12     F'
+            	WRITE(NOUT,*) '   L12     F'
 			READ(NUNIT,*) XGUESS(1)	!L12
-            read(NUNIT,*)om2
+            	read(NUNIT,*) om2 ! Why does it read om2?
 		end if
 	END IF
 c
@@ -307,11 +307,12 @@ c
 
       if (N==1) then ! armado para Lij 8/9/2014 (valid also for K0 12/9/2017)
   7     WRITE(NOUT,*) ' d1 for comp2: ',del1(2)
-        rmin=XGUESS(1)-0.01
-        rmax=XGUESS(1)+0.01
+        rmin=XGUESS(1)-0.10
+        rmax=XGUESS(1)+0.10
         do rl=rmin,rmax,0.001
             XGUESS(1)=rl
-            OF = F(XGUESS, N)  ! write(NOUT,*) 
+            OF = F(XGUESS, N)  
+		write(NOUT,*) 
         end do
         WRITE (6,*) ' Another d1 for heavy comp?  1 for YES' ! added 14/11/2014 to allow various e.g. C60 on a single run
         READ (5,*)nreply
@@ -359,6 +360,7 @@ c            PRAXIS( T0 , MACHEP , H0, N,PRIN, X, F,FMIN)
 		print *, "F0: ", f(xguess, n)
 		call nm_opt(xguess, n, i_stat)
 		write(nout, "(G)") "NM: ", xguess, "F: ", f(xguess, n)
+		i_stat = 52
 		if (i_stat /= 1) then
 		print *, "PRAXIS", xguess
 		 ! call exit
@@ -744,11 +746,13 @@ c		Y2=1.0d0-Y1fug(i)
 		FV(jf)=dfug(1)**2+dfug(2)**2
 	end do
 	F = SUM(FV)
+	if (isnan(F)) F=1e10
       WRITE (NOUT,99) (X(L),L=1,N), F
 c      F = F - sum(FV(1:4))
 c      WRITE (NOUT,99) (X(L),L=1,N), F
 98	FORMAT (8F9.5,A15)
-99	FORMAT (8F10.5,E12.4)
+99    format(*(E16.9,2x), 5E12.4)
+!99	FORMAT (8F10.5,E12.4)
 C
       RETURN
       END
@@ -1088,7 +1092,9 @@ C	IF(NMODEL.EQ.5)CALL PARAGC(T,NCO,NG,1)
 	d2Pdrho=V**3*ArV2		! =V*(dPdrho-RGAS*T)
 	rho=-RT/d2Pdrho
 	epsrho=eps/B(icomp)
-	DO WHILE (delrho.gt.tol)
+	iterations = 0
+	DO WHILE (delrho.gt.tol .and. iterations  < 100)
+		iterations = iterations + 1
 		V=1/rho
 		call ArVnder(NDER,NTEMP,rn,V,T,Ar,ArV,ArTV,ArV2,Arn,ArVn,ArTn,Arn2)
 		dPdrho=RT+V*V*ArV2
@@ -1178,7 +1184,9 @@ c	first point initialization
 	VL=exp(XVAR(3))
 	VV=exp(XVAR(4))
 c	Newton procedure for solving the present point
-	DO WHILE (DMAX.GT.TOL)
+	iterations = 0
+	DO WHILE (DMAX.GT.TOL .and. iterations < 100)
+		iterations = iterations + 1
 		NITER=NITER+1
 		NVCORREC=0
  21		CALL XTVTERMO(4,T,VL,Px,z,FUGx,FUGTx,FUGVx,DFGNx)
@@ -1537,8 +1545,9 @@ c		delXS=XVAR(3)-log(1.0D0-XcUB)
 	F(7)=0.0D0
 	delX=0.0
 	if(T.lt.180)TOLF=0.1
+	newton_iterations = 0
 c	Newton procedure for solving the present point
-	DO WHILE (DMAX.GT.TOL.or.FMAX.GT.TOLF)
+	DO WHILE (DMAX.GT.TOL.or.FMAX.GT.TOLF .and. NITER < 100)
 C		IF (NITER*FMAX.GE.2.0.OR.T.GT.TOLD) THEN ! step was too large -> convergence problem
 C		IF ((FMAX.GT.FMAXOLD.and.DMAX.GT.DMAXOLD).OR.NITER.eq.10) THEN
 C			delXS=0.5*delXS
@@ -1655,8 +1664,12 @@ c		CALL DLSARG (N, RJAC, LDA, -F, IPATH, delX)
 c       call dgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
         b = -F
         AJ=RJAC
+	  if (any(isnan(AJ))) return
         call dgesv( N, 1, AJ, lda, ipiv, b, ldb, info )
-        if (info.ne.0) write(6,*)"error with dgesv in parameter ",info
+        if (info.ne.0) then 
+		write(6,*)"error with dgesv in parameter ",info
+		return
+	  end if
         delX = b
 c        
 		FMAXOLD=FMAX
@@ -1724,6 +1737,8 @@ C
 			if(relmax.ge.0.8)delx=delx*0.5/relmax	! important for Vw at low T
 		end if
  17		XVAR=XVAR+delX
+		newton_iterations = newton_iterations + 1
+		if (newton_iterations > 100) return
 		T=exp(XVAR(1))
 		X(1)=exp(XVAR(2))
 		X(2)=1.0D0-X(1)
@@ -2074,6 +2089,7 @@ C	AT is something close to Gr(P,T)
       ZETA = ZETA + MAX (MIN(DEL,0.1D0),-.1D0)
       IF (ZETA .GT. ZETMAX .OR. ZETA .LT. ZETMIN)
      &      ZETA = .5D0*(ZETMAX+ZETMIN)
+      if (isnan(pcalc)) return
       IF (ABS(PCALC-P) .LT. 1D-12) GOTO 101
       IF (ABS(DEL) .GT. 1D-10) GOTO 100
  101	IF (ITYP .EQ. 0 ) THEN
@@ -2255,14 +2271,18 @@ c	IPATH=1
  11	Tini=T
 	Xini=X(1)
 	ITER=1
+	iterations = 0
 	JAC(1,1:3)=0
 	JAC(1,NS)=1.0D0
   	call bceval(X,T,V,P,b,c)
 	F(2)=b
 	F(3)=C
 	DEL=1
+	if (isnan(P)) return
 c	Newton procedure for solving the present point
-	DO WHILE (MAXVAL(ABS(DEL)).GT.TOLX)  
+C	TODO: Check this while
+	DO WHILE (MAXVAL(ABS(DEL)).GT.TOLX .and. iterations < 100)  
+		iterations = iterations + 1
 	IF(ITER.eq.6.and.delXS.ne.0)THEN	! Reduce to half step and try again
 		delXS=delXS/2
 		STEP=STEP/2
@@ -2331,7 +2351,7 @@ c		goto 22
 c	end if
 		T=T1
 		V=exp(log(V)+DEL(3))
-  	call bceval(X,T,V,P,b,c) ! variables & DPDVcri to print come from this calling
+		call bceval(X,T,V,P,b,c) ! variables & DPDVcri to print come from this calling
 		ITER=ITER+1
 		F(2)=b
 		F(3)=C
@@ -2815,6 +2835,7 @@ C
 		   tpdm=tpdm+Z(2)*(log(Z(2))+FUG(2)-fc(2))
 			W = (Z(1)+Zlim)/2
 			if(tpdm.le.FTAB(INUM))go to 99
+			if (isnan(tpdm)) exit
 		END DO
 	else
 		DERV1 = (FTAB(INUM+1)-FTAB(INUM-1))/(2.D0*STEP)
@@ -2854,13 +2875,14 @@ c	IPATH=1
 	Yn(1)=1.0D0-Y2
 	DEL=1
 c	Newton procedure for solving the CEP equations
-	DO WHILE (MAXVAL(ABS(DEL)).GT.TOLX)  
+	DO WHILE (MAXVAL(ABS(DEL)).GT.TOLX .and. ITER < 100)  
 		eps=min(1.0D-6,x(2)/20)
 		deps=2*eps
 		call XTVTERMO(4,T,Vc,Pc,X,FUGc,FUGTc,FUGVc,FUGNc)
 		DPcDN=DPDN
 		DPcDT=DPDT
 		DPcDV=DPDV
+		counter = 0
 21		call XTVTERMO(4,T,Vy,Py,Yn,FUG,FUGT,FUGV,FUGN)
 		DPyDV=DPDV
 		if(Pc.GT.0.0.AND.(Py.lt.0.95*Pc.or.Py.gt.1.05*Pc))then
@@ -2869,7 +2891,12 @@ c	Newton procedure for solving the CEP equations
 			else	! mechanical instability region
 				Vy=0.9*Vy
 			end if
-			go to 21
+			counter = counter + 1
+			if (counter > 500) then
+				exit
+			else
+				go to 21
+			end if
 		end if
   		call bceval(X,T,Vc,Pc,b,c)
 		F(1)=b
@@ -2938,6 +2965,7 @@ c
 		relmax=maxval(abs(rel))
 		if(relmax.ge.0.2)delx=delx*0.1/relmax
 		call Bcalc(Yn,T,Bmix)
+		if (isnan(Vy)) return
  27		Vy0=exp(log(Vy)+DEL(5))
 		if (Vy0.lt.1.01*Bmix)then
 			DEL=DEL/2
@@ -3016,9 +3044,9 @@ c	IPATH=1
 	F(5)=0.0D0		! log(T)-S (specification: T)
 	RJAC(5,5)=1.0D0
 c	Newton procedure for solving the present point
-	DO WHILE (DMAX.GT.TOL.or.FMAX.GT.TOLF)
+	DO WHILE (DMAX.GT.TOL.or.FMAX.GT.TOLF .and. NITER < 100)
 		IF ((FMAX.GT.FMAXOLD.and.DMAX.GT.DMAXOLD).or.niter.GE.10) THEN
-			! WRITE(NOUT,*) 'NITER PT= ', NITER
+			WRITE(NOUT,*) 'NITER PT= ', NITER
 			if(niter.GE.25)exit
 		END IF
 	    NITER=NITER+1
@@ -3188,6 +3216,7 @@ c	Newton procedure for solving the present point
 			if(niter.GE.20)exit
 		END IF
 	    NITER=NITER+1
+	    counter = 0
  21		CALL XTVTERMO(4,T,Vx,Px,X,FUGx,FUGTx,FUGVx,DFGNx)
 c		INDIC=4 (T derivatives are required)
 	    DPDNx=DPDN
@@ -3221,6 +3250,8 @@ C				if(Vy.eq.Vyold)go to 11  ! return
 			end if
 			XVAR(4)=log(Vy)
 			IBACK=1
+			counter = counter + 1
+			if (counter > 100) return
 		end if
 		if(IBACK.EQ.1) go to 21
 		if((Vy.gt.Vx.and.(Px.lt.P/2.OR.Px.gt.2*P)).or.
@@ -3444,11 +3475,14 @@ c
 		DMAXOLD=DMAX
 		DMAX=MAXVAL(ABS(DELX))
 		OLD=XVAR
+		contador = 0
  17		XVAR=OLD+delX
 		IF(MAXVAL(ABS(DELX)).ge.6.0/NITER.or.XVAR(1).gt.0)THEN
 			delX=delX/2
 			go to 17
 		END IF
+		contador = contador + 1
+		if (contador > 150) return
 		Vx=exp(XVAR(3))
 		Vy=exp(XVAR(4))
 		if(IZ.EQ.2)then
