@@ -302,23 +302,7 @@ c
 		end if
 	end if
 
-	! sweep: block
-	! ! Block of code to do a sweep over two parameters of the objective function
-	! integer :: var_1, var_2, funit
-	! real(8) :: fval
-	! open(newunit=funit, file="sweep")
-	! if (n == 2) then
-	! 	do var_1=-250, 250
-	! 		do var_2=-250,250
-	! 			XGUESS = [var_1, var_2]/500.d0
-	! 			fval = F(XGUESS, N)   ! SUBROUTINE ObjFun (N, X, F)
-	! 			write(funit, "(3(E15.5))") XGUESS(1), XGUESS(2), fval
-	! 		end do
-	! 		write(funit, *) ""
-	! 	end do
-	! end if
-	! close(funit)
-	! end block sweep
+	! call two_vars_sweep
 	! call exit
 
       if (N==1) then ! armado para Lij 8/9/2014 (valid also for K0 12/9/2017)
@@ -3559,4 +3543,55 @@ C
             real(8) :: nm_f
             nm_f = F(xx, N)
          end function
+	end subroutine
+	
+	subroutine two_vars_sweep
+	! Block of code to do a sweep over two parameters of 
+      ! the objective function
+	!$USE OMP
+	integer :: var_1, var_2, funit, inputunit
+	real(8) :: x(2), fval
+	real(8) :: npoints(2), upper_limit(2), lower_limit(2)
+	real(8) :: delta_1, delta_2
+	namelist /sweep/ npoints, upper_limit, lower_limit
+
+	external :: f
+	real(8) :: f
+
+	real(8) :: aux = 0.d0, x1, x2
+
+	integer :: i, j
+
+      open(newunit=inputunit, file="sweepin")
+	open(newunit=funit, file="sweep")
+      read(inputunit, nml=sweep)
+      close(inputunit)
+
+	delta_1 = (upper_limit(1)-lower_limit(1))/npoints(1)
+	delta_2 = (upper_limit(2)-lower_limit(2))/npoints(2)
+
+      x = lower_limit
+      print *, "SWEEPIN"
+      print *, lower_limit
+      print *, upper_limit
+      print *, delta_1, delta_2
+
+	!$OMP PARALLEL DO
+	do i=0, npoints(1)
+		x1 = lower_limit(1) + (i)*delta_1
+		!$OMP PARALLEL DO
+		do j=0, npoints(2)
+			x2 = lower_limit(2) + j*delta_2
+			x = [x1, x2]
+			fval = F(X, 2)
+			if (fval > 1e4) fval = aux/aux
+			write(funit, "(3(E15.5))") x, fval
+            end do
+		write(funit, *) ""
+		!$OMP END PARALLEL DO
+      end do
+	!$OMP END PARALLEL DO
+
+	close(funit)
+	close(inputunit)
 	end subroutine
