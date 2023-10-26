@@ -1,0 +1,5 @@
+&sweep
+    npoints=200, 200
+    lower_limit= -1, -2
+    upper_limit= 50,  2
+/
