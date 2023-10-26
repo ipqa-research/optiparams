@@ -8,8 +8,8 @@ Nitrogen
 n-Hexane
 508.4936   30.3566  0.301261  0.31246 2.0
 27.425  0.105  2.789   2.273
-0.5    K0
-0.05  Kinf
+1.0    K0
+-0.5  Kinf
 126.2   Tstar
 0.00	lij? just to use the same reading subroutine as in GPEC
 1500
@@ -44,11 +44,14 @@ n-Hexane
 0.69604  Xc
 410.95   Tc
 
+-0.1  Kinf_0
+0.301261 om2
+
 ! Configuracion de optimizador
 &nm_settings
     konvge=1000 ! Passes to check convergence
-    kcount=1e8  ! Ammount of function evaluations
-    step=0.001, 0.001 ! Initial simplex step size
+    kcount=1e3  ! Ammount of function evaluations
+    step=0.01, 0.01 ! Initial simplex step size
     reqmin=1e-6
 /
 

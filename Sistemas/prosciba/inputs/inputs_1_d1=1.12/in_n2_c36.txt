@@ -8,8 +8,8 @@ Nitrogen
 n-Hexatriacontane
 873.6159    6.7939  1.52596  1.6539 2.0
 366.175  0.789  3.045   5.899
-0.3 K0
-0.5 Kinf
+30 K0
+0.01 Kinf
 126.2   Tstar
 0.00	lij just to use the same reading subroutine as in GPEC
 1500
@@ -24,6 +24,9 @@ n-Hexatriacontane
 0		NTZ	(Número de condiciones de T y z)
 0		NFUG
 0 		IntCri
+
+30.3 K0
+-0.5 Kinf
 
 ================================================================================
 Definiciones de bloques de datos

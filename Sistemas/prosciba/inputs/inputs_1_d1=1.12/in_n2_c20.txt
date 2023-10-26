@@ -8,8 +8,8 @@ Nitrogen
 n-Eicosane
 767.6331   11.5889  0.906878  0.93072 2.0
 164.913  0.410  2.940   4.262
-4.3 K0
-0.5 Kinf
+30.3 K0
+-0.1 Kinf
 126.2   Tstar
 0.00	lij just to use the same reading subroutine as in GPEC
 1500

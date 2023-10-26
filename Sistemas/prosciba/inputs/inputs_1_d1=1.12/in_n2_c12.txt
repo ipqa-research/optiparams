@@ -6,9 +6,9 @@ Nitrogen
 126.2000   34.0000  0.037721  0.10231 2.0
 1.3909  0.026545  1.120000   1.58774
 n-Dodecane
-658.7336   18.2403  0.576385  0.59000 2.0
+658.7336   18.2403  0.576385  0.89838 2.0
 76.869  0.225  2.862   3.235
-8.94 K0
+0.94 K0
 -0.41 Kinf
 126.2   Tstar
 0.00	lij just to use the same reading subroutine as in GPEC
@@ -49,7 +49,7 @@ n-Dodecane
 &nm_settings
     konvge=1000 ! Passes to check convergence
     kcount=1e8  ! Ammount of function evaluations
-    step=0.001, 0.001 ! Initial simplex step size
+    step=0.01, 0.01 ! Initial simplex step size
     reqmin=1e-6
 /
 
