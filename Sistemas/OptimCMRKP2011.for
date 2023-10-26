@@ -503,8 +503,10 @@ c QMR
 		if(N==1)then    ! armado para Lij 9/9/2014
 			if(ipar == 0)then
 		        Kij(1,2)=X(1)
-			else
-			    lij(1,2)=X(1)
+			else if (ipar == 1) then
+			  lij(1,2)=X(1)
+			else if (ipar == 3) then
+			  kinf = X(1)
 			end if
 		else
 		    Kij(1,2)=X(1)
