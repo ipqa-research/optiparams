@@ -6,7 +6,7 @@ Nitrogen
 126.2000   34.0000  0.037721  0.10231 2.0
 1.3909  0.026545  1.120000   1.58774
 Methane
-190.5619   45.9908  0.011547  0.01840  2.0
+190.5600   45.9900  0.011550  0.10391 2.0
 2.5333  0.026132  2.716100   1.12498
 0.03 K0
 0.0 Kinf
@@ -42,6 +42,7 @@ Methane
 50.3309  Pc Stryjek, R. et al (1974)7
 0.3156     Xc Stryjek, R. et al (1974)7
 172.04   Tc Stryjek, R. et al (1974)7
+
 
 ! Configuracion de optimizador
 &nm_settings
