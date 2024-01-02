@@ -1,11 +1,11 @@
 #FC=gfortran
 #FFLAG=-Wall -Wextra
-FC=ifort -g -extend-source
-#-fast
+FC=ifort -g -extend-source -fast # -fopenmp
 
 deps:
 	mkdir -p obj
 	$(FC) -c src/asa057.f90
+	$(FC) -c src/sa.f90
 	$(FC) -c src/praxis.f
 	$(FC) -c src/Pure.for
 	$(FC) -c src/RKPR.for

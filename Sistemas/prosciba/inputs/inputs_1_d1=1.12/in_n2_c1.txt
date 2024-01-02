@@ -48,6 +48,6 @@ Methane
 &nm_settings
     konvge=1000 ! Passes to check convergence
     kcount=1e8  ! Ammount of function evaluations
-    step=0.1, 0.1 ! Initial simplex step size
+    step=0.01, 0.01 ! Initial simplex step size
     reqmin=1e-6
 /

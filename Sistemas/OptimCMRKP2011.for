@@ -307,12 +307,11 @@ c
 
       if (N==1) then ! armado para Lij 8/9/2014 (valid also for K0 12/9/2017)
   7     WRITE(NOUT,*) ' d1 for comp2: ',del1(2)
-        rmin=XGUESS(1)-0.10
-        rmax=XGUESS(1)+0.10
-        do rl=rmin,rmax,0.001
+        rmin=XGUESS(1) - 0
+        rmax=XGUESS(1) + 15
+        do rl=rmin,rmax,0.1
             XGUESS(1)=rl
             OF = F(XGUESS, N)  
-		write(NOUT,*) 
         end do
         WRITE (6,*) ' Another d1 for heavy comp?  1 for YES' ! added 14/11/2014 to allow various e.g. C60 on a single run
         READ (5,*)nreply
@@ -507,7 +506,7 @@ c QMR
 		        Kij(1,2)=X(1)
 			else if (ipar == 1) then
 			  lij(1,2)=X(1)
-			else if (ipar == 3) then
+			else if (ipar == 2) then
 			  kinf = X(1)
 			end if
 		else

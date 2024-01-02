@@ -1,5 +1,5 @@
-1 1   npar, idata(0: only PTxy - 1: Global key points)
-3	  ipar(When npar=2 and Kij Tdep... 0 for Kij' and KijInf ; 1 for Lij and Kij0)
+2 1   npar, idata(0: only PTxy - 1: Global key points)
+0	  ipar(When npar=2 and Kij Tdep... 0 for Kij' and KijInf ; 1 for Lij and Kij0)
 3     nmodel
 0 1	  ncomb, NTDEP
 Nitrogen
@@ -9,12 +9,10 @@ n-Octane
 568.7000   24.9000  0.399600  0.56921 2.0
 41.8741  0.142853  2.815130   2.62987
 3.24
--0.2
+-0,2
 126.2   Tstar
 0.00	lij just to use the same reading subroutine as in GPEC
 1500
--0.05 kinf_0
-0.399600 om2
 509.8   Pc
 0.7908  Xc
 424.0   Tc
@@ -45,13 +43,32 @@ n-Octane
 &nm_settings
     konvge=1000 ! Passes to check convergence
     kcount=1e3  ! Ammount of function evaluations
-    step=0.1, 0.01 ! Initial simplex step size
+    step=0.01, 0.01 ! Initial simplex step size
     reqmin=1e-6
 /
-
-
 ================================================================================
 
+With fixed K0:
+-0.25 kijinf0
+0.3996 om2 
+
+With fixed Kinf:
+
+npar: Number of parameters to fit
+idata: Presence of a critical (and it will be the last in the line) CP
+ipar: 
+    npar  ipar    Params to be optimized
+    1     0       Kij0   (scan)
+    1     1       Lij    (scan)
+    1     2	      Kijinf (scan)
+    2 	  0       Kij' and KijInf
+    2     1       Kij0 and Lij
+    3 	  0       Kij'  ,  KijInf and Lij
+nmodel: Thermo model [1 SRK | 2 PR76 | 3 RKPR]
+ncomb: What mixing rule to use [1 QMR | 2? CMR ]
+ntemp: T dependence of Kij=kij_inf + kij_0*exp(T/T^*) [1 yes | 0 no]
+COMPONENT 1 as GPECIN
+COMPONENT 2 as GPECIN
 --------------------------------------------------------------------------------
 X0:   1.000000000000000E-002  1.000000000000000E-002
 F0:    159.941225189234     
@@ -73,29 +90,3 @@ F:    13.6909916695270
 !    reqmin=1e-6
 !/
 --------------------------------------------------------------------------------
-
- X0:   0.000000000000000E+000  1.000000000000000E-002
- F0:    159.210173217565     
- ==================
- Nelder-Mead
- NM_0:   0.000000000000000E+000  1.000000000000000E-002
- ------------------
- Stat:            0
- Evals:         2164
- X:   2.466951114239826E-002 -0.146710333577071     
- F:    14.8957608012602     
- ==================
-
---------------------------------------------------------------------------------
- X0:   0.000000000000000E+000  0.000000000000000E+000
- F0:    132.810786925865     
- ==================
- Nelder-Mead
- NM_0:   0.000000000000000E+000  0.000000000000000E+000
- ------------------
- Stat:            0
- Evals:         4208
- X:   2.493426930196794E-002 -0.142570864268036     
- F:    15.5345302864705     
- ==================
-================================================================================

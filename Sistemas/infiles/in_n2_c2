@@ -22,20 +22,24 @@ Ethane
 169.903	78.543	0.3394	0.9562			Janisch. J. et al. (2007)
 194.26	6.92	0.01612	0.7146			Stryjek. R. et al. (1974)
 194.26	55.71	0.1756	0.9154			Stryjek. R. et al. (1974)
-220	17.45	0.0356	0.6584			Brown. T.S. et al. (1989)
-220	58.29	0.1582	0.8264			Brown. T.S. et al. (1989)
-270	54.47	0.0985	0.4159			Brown. T.S. et al. (1989)
-260	20.86	0.0106	0.1375			Gupta. M.K. (1980)
-260	95.04	0.2714	0.5473			Gupta. M.K. (1980)
-280	32.22	0.0128	0.0866			Gupta. M.K. (1980)
-280	77.92	0.1852	0.3484			Gupta. M.K. (1980)
-240	75.00	0.2006	0.7167			Zeck. S.et al. (1986)
-290	49.5377925	0.0464	0.1586			Grauso. L. et al. (1977)
-230	124.7614725	0.4543	0.665			Grauso. L. et al. (1977)
+220	    17.45	0.0356	0.6584			Brown. T.S. et al. (1989)
+220	    58.29	0.1582	0.8264			Brown. T.S. et al. (1989)
+270	    54.47	0.0985	0.4159			Brown. T.S. et al. (1989)
+260	    20.86	0.0106	0.1375			Gupta. M.K. (1980)
+260	    95.04	0.2714	0.5473			Gupta. M.K. (1980)
+280	    32.22	0.0128	0.0866			Gupta. M.K. (1980)
+280	    77.92	0.1852	0.3484			Gupta. M.K. (1980)
+240	    75.00	0.2006	0.7167			Zeck. S.et al. (1986)
+290	    49.5377925	0.0464	0.1586			Grauso. L. et al. (1977)
+230	    124.7614725	0.4543	0.665			Grauso. L. et al. (1977)
 0		NPZ	(Número de condiciones de P y z)
 0		NTZ	(Número de condiciones de T y z)
 0		NFUG
-0 		IntCri
+1 		IntCri
+119.14 Pc
+0.732  Xc
+149.82 Tc
+
 
 ! Configuracion de optimizador
 &nm_settings

@@ -9,7 +9,7 @@ Ethane
 305.3200   48.7200  0.099490  0.15701 2.0
 6.1436  0.039472  2.731680   1.49108
 0.001 K0
--0.01 Kinf
+0.01 Kinf
 126.2   Tstar
 0.00	lij? just to use the same reading subroutine as in GPEC
 1500
@@ -48,7 +48,7 @@ Ethane
 &nm_settings
     konvge=1000 ! Passes to check convergence
     kcount=1e8  ! Ammount of function evaluations
-    step=0.001, 0.1 ! Initial simplex step size
+    step=0.01, 0.01 ! Initial simplex step size
     reqmin=1e-6
 /
 

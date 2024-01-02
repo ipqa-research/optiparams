@@ -1,5 +1,5 @@
 &sweep
-    npoints=200, 200
-    lower_limit= -1, -2
-    upper_limit= 50,  2
+    npoints=100, 100
+    lower_limit= -3, -0.4
+    upper_limit= 3, 0.1 
 /

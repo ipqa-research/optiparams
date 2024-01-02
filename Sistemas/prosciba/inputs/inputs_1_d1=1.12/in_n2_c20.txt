@@ -1,5 +1,5 @@
-2 0   npar, idata(0: only PTxy - 1: Global key points)
-0	  ipar(When npar=2 and Kij Tdep... 0 for Kij' and KijInf ; 1 for Lij and Kij0)
+1 0   npar, idata(0: only PTxy - 1: Global key points)
+2	  ipar(When npar=2 and Kij Tdep... 0 for Kij' and KijInf ; 1 for Lij and Kij0)
 3     nmodel
 0 1	  ncomb, NTDEP
 Nitrogen
@@ -8,11 +8,13 @@ Nitrogen
 n-Eicosane
 767.6331   11.5889  0.906878  0.93072 2.0
 164.913  0.410  2.940   4.262
-30.3 K0
--0.1 Kinf
+5.568 K0
+-0.2 Kinf
 126.2   Tstar
 0.00	lij just to use the same reading subroutine as in GPEC
 1500
+0 kinf0
+0.906878 om2
 0       NTP (Número de condiciones de T y P)
 9		NPZ	(Número de condiciones de P y z)
 323.2	44.9	0.061	0.9999 1

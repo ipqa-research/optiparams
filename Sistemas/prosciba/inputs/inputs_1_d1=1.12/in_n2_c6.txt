@@ -8,8 +8,8 @@ Nitrogen
 n-Hexane
 508.4936   30.3566  0.301261  0.31246 2.0
 27.425  0.105  2.789   2.273
-1.0    K0
--0.5  Kinf
+2.0    K0
+-0.2  Kinf
 126.2   Tstar
 0.00	lij? just to use the same reading subroutine as in GPEC
 1500

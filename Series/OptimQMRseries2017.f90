@@ -140,40 +140,53 @@ SUBROUTINE OptimQMR(N)
    read (NUNIT, *) Phigh
    read (NUNIT, *) OM(Nsys + 1)   ! Methane acentric factor
 
-   curve = .false.
-   write (6, *) 'Enter carbon number of compound 1 defining the serie'
-   write (6, *) '1 for Methane, 2 for Ethane, etc.'
-   READ (5, *) N1
-   if (N >= 3) then
-      write (6, *) 'ENTER 1 FOR OBTAINING Pure Component Parameters from exponential curve constants for del1'
-      write (6, *) 'OTHERWISE (if params will remain as read) ENTER 0'
-      READ (5, *) ncu
-      if (ncu == 1) curve = .true.
-      if (curve) then
-         READ (nunit, *) Ad, Bd, refN
-         write (6, *) 'ENTER 1 FOR Ad+Bd*NC(i)*exp(-NC(i)/refN)'
-         write (6, *) 'ENTER 2 for Ad+Bd* (1.0-exp(-NC(i)/refN))'
-         READ (5, *) iexp
-         write (6, *) 'ENTER 1 for fixing bk '
-         write (6, *) '   or 2 for fixing refN '
-         write (6, *) '   or 3 for fixing Ad '
-         write (6, *) '   or 4 for fixing ck '
-         write (6, *) 'while optimizing the others'
-         READ (5, *) i5p
-         if (i5p == 1) write (6, *) 'ENTER fixed value for bk '
-         if (i5p /= 1) write (6, *) 'ENTER initial value for bk '
-         READ (5, *) bk
+   ! ===========================================================================
+   ! Regression of delta 1 with exponential setup
+   ! ---------------------------------------------------------------------------
+   exp_d1: block
+      curve = .false. ! del1 regression
+      write (6, *) 'Enter carbon number of compound 1 defining the serie'
+      write (6, *) '1 for Methane, 2 for Ethane, etc.'
+      READ (5, *) N1
+      if (N >= 3) then
+         write (6, *) 'ENTER 1 FOR OBTAINING Pure Component Parameters from exponential curve constants for del1'
+         write (6, *) 'OTHERWISE (if params will remain as read) ENTER 0'
+         READ (5, *) ncu
+         if (ncu == 1) curve = .true.
+         if (curve) then
+            READ (nunit, *) Ad, Bd, refN
+            write (6, *) 'ENTER 1 FOR Ad+Bd*NC(i)*exp(-NC(i)/refN)'
+            write (6, *) 'ENTER 2 for Ad+Bd* (1.0-exp(-NC(i)/refN))'
+            READ (5, *) iexp
+            write (6, *) 'ENTER 1 for fixing bk '
+            write (6, *) '   or 2 for fixing refN '
+            write (6, *) '   or 3 for fixing Ad '
+            write (6, *) '   or 4 for fixing ck '
+            write (6, *) 'while optimizing the others'
+            READ (5, *) i5p
+            if (i5p == 1) write (6, *) 'ENTER fixed value for bk '
+            if (i5p /= 1) write (6, *) 'ENTER initial value for bk '
+            READ (5, *) bk
+         end if
       end if
-   end if
 
-   if (curve .and. updateC1) then
-      if (iexp == 1) del1(1) = Ad + Bd*exp(-1/refN)
-      if (iexp == 2) del1(1) = Ad + Bd*(1.0 - exp(-1/refN))
-      call paramsfromdelta1(del1(1), Tc(1), Pc(1), OM(Nsys + 1), ac(1), b(1), rk(1), Dc(1))
-      write (nout, *) 1
-      write (nout, fmt_1) Tc(1), Pc(1), OM(Nsys + 1), 1/Dc(1), 2.0
-      write (nout, fmt_2) ac(1), b(1), del1(1), rk(1)
-   end if
+      if (curve .and. updateC1) then
+         if (iexp == 1) del1(1) = Ad + Bd*exp(-1/refN)
+         if (iexp == 2) del1(1) = Ad + Bd*(1.0 - exp(-1/refN))
+         call paramsfromdelta1(del1(1), Tc(1), Pc(1), OM(Nsys + 1), ac(1), b(1), rk(1), Dc(1))
+         write (nout, *) 1
+         write (nout, fmt_1) Tc(1), Pc(1), OM(Nsys + 1), 1/Dc(1), 2.0
+         write (nout, fmt_2) ac(1), b(1), del1(1), rk(1)
+      end if
+   end block exp_d1
+   ! ===========================================================================
+   nc = 0
+   ica = 0
+   nk = 0
+   ntp = 0
+   nzp = 0
+   nzt = 0
+   nfug = 0
 
    do i = 1, Nsys
       read (NUNIT, *) NC(i), Ica(i), NK(i), NTP(i), NzP(i), NzT(i), NFUG(i)
@@ -369,13 +382,34 @@ SUBROUTINE OptimQMR(N)
       write (NOUT, *) '     cK       dK      bK     F'
    end if
 
-   Fmin = PRAXIS(3.D-5, 2.22D-16, 2.D-2, N, 3, XGUESS, F, 1D-2)
+   ! Fmin = PRAXIS(3.D-5, 2.22D-16, 2.D-2, N, 3, XGUESS, F, 1D-2)
+
+   nm: block
+   real(8) :: start(n), xmin(n), ynewlo, reqmin=3.0d-5, step(n)
+   integer :: konvge=10, kcount=1000
+   integer :: icount, numres, ifault
+
+   step = 1
+
+   print *, "NM"
+
+   call nelmin ( nm_f, n, start, xmin, ynewlo, reqmin, step, konvge, kcount, &
+               icount, numres, ifault )
+   end block nm
 
    if (N > 5) then
       write (NOUT, fmt_99995) XGUESS, Fmin
    else if (N .eq. 2) then
       write (NOUT, fmt_99992) XGUESS, Fmin
    end if
+
+   contains
+
+      function nm_f(xx)
+         real(8) :: xx(*)
+         real(8) :: nm_f
+         nm_f = F(xx, N)
+      end function
 end
 
 FUNCTION F(X, N)   ! SUBROUTINE ObjFun (N, X, F)
@@ -691,7 +725,6 @@ FUNCTION F(X, N)   ! SUBROUTINE ObjFun (N, X, F)
    ! write (NOUT,99) (X(L),L=1,N), F
 98 FORMAT(8F9.5, A15)
 99 FORMAT(5F9.4, 9F8.4, E13.5)
-
    RETURN
 end
 
@@ -1654,6 +1687,7 @@ subroutine XTVnewtonCrit(NOUT, NS, delXS, X, T, V)
                DEL = 1
 !        Newton procedure for solving the present point
                DO WHILE (MAXVAL(ABS(DEL)) .GT. TOLX)
+                     write (NOUT, *) 'NITER PT= ', NITER
                if (ITER .eq. 6 .and. delXS .ne. 0) then        ! Reduce to half step and try again
                   delXS = delXS/2
                   STEP = STEP/2
